@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>假訊息情報中心 — Intelligence Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Fira+Code:wght@300;400;500;600&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Global overrides for index ──────────────────────── */
+
+    /* Crosshatch grid (more dramatic than dots) */
+    body {
+      background-image:
+        linear-gradient(rgba(34,211,238,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34,211,238,0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    /* Moving HUD scan line */
+    .hud-scan {
+      position: fixed;
+      left: 0; width: 100%; height: 3px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(34,211,238,0.08) 20%,
+        rgba(34,211,238,0.22) 50%,
+        rgba(34,211,238,0.08) 80%,
+        transparent 100%
+      );
+      pointer-events: none;
+      z-index: 9998;
+      animation: scanMove 8s linear infinite;
+    }
+    @keyframes scanMove {
+      0%   { top: -3px; }
+      100% { top: 100vh; }
+    }
+
+    /* Radial vignette */
+    .hud-vignette {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at 50% 40%,
+        transparent 35%,
+        rgba(4,10,20,0.65) 100%
+      );
+      pointer-events: none;
+      z-index: 9997;
+    }
+
+    /* ── Command Header ────────────────────────────────────── */
+    .cmd-header {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 24px;
+      border-bottom: 1px solid rgba(34,211,238,0.08);
+      animation: fadeDown 0.6s ease both;
+    }
+    .cmd-header__breadcrumb {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--primary);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0.8;
+    }
+    .cmd-header__breadcrumb::before {
+      content: '//';
+      opacity: 0.45;
+    }
+    .cmd-header__title {
+      font-family: var(--display);
+      font-size: 34px;
+      font-weight: 400;
+      line-height: 1.15;
+      margin-bottom: 10px;
+      letter-spacing: 0.02em;
+    }
+    .cmd-header__title .hi {
+      color: var(--primary);
+      text-shadow: 0 0 20px rgba(34,211,238,0.3);
+    }
+    .cmd-header__sub {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #94aec6;
+      letter-spacing: 0.06em;
+    }
+    .cmd-header__sub .sep { margin: 0 8px; opacity: 0.4; }
+
+    /* ── Stats Ticker ──────────────────────────────────────── */
+    .stats-ticker {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .ticker-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px 12px;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.5s ease both;
+    }
+    .ticker-item:nth-child(1) { animation-delay: 0.1s; }
+    .ticker-item:nth-child(2) { animation-delay: 0.18s; }
+    .ticker-item:nth-child(3) { animation-delay: 0.26s; }
+    .ticker-item:nth-child(4) { animation-delay: 0.34s; }
+    /* Left accent bar */
+    .ticker-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 2px; height: 100%;
+      background: var(--primary);
+      opacity: 0.6;
+    }
+    .ticker-item__num {
+      font-family: var(--display);
+      font-size: 22px;
+      color: var(--primary);
+      line-height: 1;
+      margin-bottom: 5px;
+      text-shadow: 0 0 14px rgba(34,211,238,0.3);
+    }
+    .ticker-item__label {
+      font-size: 9px;
+      color: #94aec6;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-family: var(--mono);
+    }
+
+    /* ── Main Intel Grid ───────────────────────────────────── */
+    .intel-main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 24px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      align-items: start;
+    }
+    .intel-col { display: flex; flex-direction: column; gap: 20px; }
+    .intel-panel--resources { animation-delay: 0.4s; }
+    .intel-panel--table     { animation-delay: 0.5s; }
+
+    /* ── Intel Panel ───────────────────────────────────────── */
+    .intel-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      position: relative;
+      animation: fadeUp 0.5s ease both;
+    }
+    .intel-panel--query { animation-delay: 0.2s; }
+    .intel-panel--db    { animation-delay: 0.3s; }
+    .intel-panel--table { animation-delay: 0.4s; }
+
+    /* Corner brackets */
+    .intel-panel::before,
+    .intel-panel::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      pointer-events: none;
+    }
+    .intel-panel::before {
+      top: -1px; left: -1px;
+      border-top: 2px solid var(--primary);
+      border-left: 2px solid var(--primary);
+      border-radius: var(--radius) 0 0 0;
+      opacity: 0.7;
+    }
+    .intel-panel::after {
+      bottom: -1px; right: -1px;
+      border-bottom: 2px solid var(--primary);
+      border-right: 2px solid var(--primary);
+      border-radius: 0 0 var(--radius) 0;
+      opacity: 0.7;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 20px 0;
+      margin-bottom: 16px;
+    }
+    /* panel-tag and panel-title come from style.css */
+
+    /* ── Query Panel ───────────────────────────────────────── */
+    .panel-body { padding: 0 20px 20px; }
+
+    .input-type-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 3px;
+    }
+    .input-tab {
+      flex: 1;
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      border: none;
+      color: #94aec6;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: var(--mono);
+      letter-spacing: 0.06em;
+    }
+    .input-tab.active {
+      background: var(--primary-dim);
+      color: var(--primary);
+      border: 1px solid rgba(34,211,238,0.2);
+    }
+    .input-tab:hover:not(.active) { color: var(--text-secondary); }
+
+    /* Mode buttons */
+    .mode-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .mode-btn {
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: all var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .mode-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%; height: 2px;
+      background: linear-gradient(90deg, var(--primary), transparent);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+    .mode-btn:hover::after { transform: scaleX(1); }
+    .mode-btn:hover {
+      border-color: rgba(34,211,238,0.3);
+      background: rgba(34,211,238,0.04);
+    }
+    .mode-btn__title {
+      font-family: var(--display);
+      font-size: 12px;
+      margin-bottom: 4px;
+      color: var(--primary);
+      letter-spacing: 0.06em;
+    }
+    .mode-btn__desc {
+      font-size: 11px;
+      color: #94aec6;
+      line-height: 1.5;
+    }
+
+    /* ── DB Panel ──────────────────────────────────────────── */
+    .chart-wrap {
+      position: relative;
+      height: 180px;
+      padding: 0 16px 12px;
+    }
+
+    .db-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0 16px 14px;
+      opacity: 0.5;
+    }
+
+    .db-bars { padding: 0 20px 16px; display: flex; flex-direction: column; gap: 9px; }
+
+    .db-bar-item {
+      display: grid;
+      grid-template-columns: 52px 1fr 38px;
+      align-items: center;
+      gap: 8px;
+    }
+    .db-bar-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #94aec6;
+      text-align: right;
+      letter-spacing: 0.03em;
+    }
+    .db-bar-track {
+      height: 5px;
+      background: var(--surface-2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .db-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      width: 0;
+      transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+    }
+    .db-bar-pct {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-align: right;
+    }
+
+    /* ── Category Table ────────────────────────────────────── */
+    .intel-table-wrap {
+      max-width: 1200px;
+      margin: 0 auto 40px;
+      padding: 0 24px;
+    }
+    .intel-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .intel-table th {
+      padding: 10px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--display);
+      font-size: 9px;
+      color: var(--primary);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .intel-table td {
+      padding: 9px 16px;
+      border-bottom: 1px solid rgba(26,40,64,0.6);
+      color: var(--text-secondary);
+      font-family: var(--mono);
+    }
+    .intel-table td:first-child { color: var(--text-muted); width: 36px; }
+    .intel-table td:nth-child(2) { color: var(--text); font-family: 'Noto Sans TC', sans-serif; font-size: 13px; }
+    .intel-table td:nth-child(3) { color: var(--primary); }
+    .intel-table td:last-child { text-align: right; color: var(--text-muted); }
+    .intel-table tr:hover td { background: rgba(34,211,238,0.025); }
+
+    /* ── Animations ────────────────────────────────────────── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .intel-main { grid-template-columns: 1fr; }
+      .stats-ticker { grid-template-columns: repeat(2, 1fr); }
+      .cmd-header__title { font-size: 28px; }
+      .intel-table-wrap { margin: 0 16px 32px; }
+    }
+    @media (max-width: 600px) {
+      .mode-buttons { grid-template-columns: 1fr; }
+      .sys-bar__right { display: none; }
+      .cmd-header { padding: 24px 16px 20px; }
+      .stats-ticker { padding: 16px; }
+      .intel-main { padding: 0 16px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── System Status Bar ─────────────────────────────────── -->
+<div class="sys-bar">
+  <div class="sys-bar__inner">
+    <span class="sys-item"><span class="sys-dot"></span>GROQ AI</span>
+    <span class="sys-item"><span class="sys-dot"></span>CHROMADB</span>
+    <span class="sys-item"><span class="sys-dot"></span>GOOGLE FCK</span>
+    <div class="sys-bar__right">
+      <span>SYS: DIC-v2.1</span>
+      <span id="sys-time">--:--:--</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Nav ───────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav__inner">
+    <a class="nav__logo" href="index.html">
+      <div class="nav__logo-icon">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 1L2 3.5V8C2 11.5 4.5 14.2 8 15C11.5 14.2 14 11.5 14 8V3.5L8 1Z" stroke="#22d3ee" stroke-width="1.2" stroke-linejoin="round"/>
+          <path d="M5 8L7 10L11 6" stroke="#22d3ee" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      假訊息情報中心
+    </a>
+    <div class="nav__links">
+      <a href="index.html" class="active">查核首頁</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Command Header ─────────────────────────────────────── -->
+<div class="cmd-header">
+  <div class="cmd-header__breadcrumb">DISINFORMATION INTELLIGENCE CENTER &nbsp;/&nbsp; 情報查核系統</div>
+  <h1 class="cmd-header__title">識破假訊息，<span class="hi">還你判斷力</span></h1>
+  <p class="cmd-header__sub">
+    AI 驅動查核
+    <span class="sep">|</span>
+    RAG 向量檢索
+    <span class="sep">|</span>
+    265,952 筆本土記錄
+    <span class="sep">|</span>
+    Google Fact Check 整合
+  </p>
+</div>
+
+<!-- ── Stats Ticker ───────────────────────────────────────── -->
+<div class="stats-ticker">
+  <div class="ticker-item">
+    <div class="ticker-item__num skeleton-num" id="total-count">—</div>
+    <div class="ticker-item__label">查核記錄總數</div>
+  </div>
+  <div class="ticker-item">
+    <div class="ticker-item__num skeleton-num" id="category-count">—</div>
+    <div class="ticker-item__label">假訊息類別</div>
+  </div>
+  <div class="ticker-item">
+    <div class="ticker-item__num skeleton-num" id="top-category">—</div>
+    <div class="ticker-item__label">最多類別</div>
+  </div>
+  <div class="ticker-item">
+    <div class="ticker-item__num">3</div>
+    <div class="ticker-item__label">整合資料來源</div>
+  </div>
+</div>
+
+<!-- ── Main Intel Grid ────────────────────────────────────── -->
+<div class="intel-main">
+
+  <!-- Left Column -->
+  <div class="intel-col">
+
+  <!-- Query Terminal -->
+  <div class="intel-panel intel-panel--query">
+    <div class="panel-header">
+      <span class="panel-tag">QUERY TERMINAL</span>
+      <span class="panel-title">情報查核輸入</span>
+    </div>
+    <div class="panel-body">
+
+      <div class="input-type-tabs">
+        <button class="input-tab active" onclick="switchInputType('text', this)">[ 文字訊息 ]</button>
+        <button class="input-tab" onclick="switchInputType('url', this)">[ 網址 ]</button>
+        <button class="input-tab" onclick="switchInputType('image', this)">[ 圖片 ]</button>
+      </div>
+
+      <!-- 文字 -->
+      <div id="input-text">
+        <div class="form-group">
+          <div class="form-label-row">
+            <label class="form-label">輸入可疑訊息</label>
+            <button class="clear-btn hidden" id="clear-text-btn" onclick="clearInput('text')">✕ 清除</button>
+          </div>
+          <textarea id="text-input" class="form-textarea" rows="6"
+            placeholder="貼上可疑訊息內容，例如：「喝蘋果醋可以治療高血壓」..."
+            oninput="toggleClearBtn('text', this.value)"></textarea>
+        </div>
+      </div>
+
+      <!-- 網址 -->
+      <div id="input-url" class="hidden">
+        <div class="form-group">
+          <div class="form-label-row">
+            <label class="form-label">輸入可疑網址</label>
+            <button class="clear-btn hidden" id="clear-url-btn" onclick="clearInput('url')">✕ 清除</button>
+          </div>
+          <input type="url" id="url-input" class="form-input"
+            placeholder="https://example.com/suspicious-article"
+            oninput="toggleClearBtn('url', this.value)" />
+        </div>
+      </div>
+
+      <!-- 圖片 -->
+      <div id="input-image" class="hidden">
+        <div class="form-group">
+          <div class="form-label-row">
+            <label class="form-label">上傳可疑圖片</label>
+            <button class="clear-btn hidden" id="clear-image-btn" onclick="clearInput('image')">✕ 清除</button>
+          </div>
+          <div class="upload-area" id="upload-area"
+            onclick="document.getElementById('image-file').click()"
+            ondragover="handleDragOver(event)"
+            ondrop="handleDrop(event)">
+            <div class="upload-area__icon">📁</div>
+            <div class="upload-area__text">點擊或拖曳圖片到此處<br/>支援 JPG、PNG、WebP</div>
+          </div>
+          <input type="file" id="image-file" accept="image/*" class="hidden" onchange="handleFileSelect(event)" />
+          <div id="image-preview" class="hidden mt-16" style="text-align:center">
+            <img id="preview-img" style="max-height:200px; border-radius:8px; border:1px solid var(--border)" />
+            <p class="text-sm text-muted mt-8" id="file-name"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mode-buttons">
+        <button class="mode-btn" onclick="submitCheck('citizen')">
+          <div class="mode-btn__title">▶ STEP ANALYZE</div>
+          <div class="mode-btn__desc">逐步引導判斷真偽<br/>附媒體識讀小撇步</div>
+        </button>
+        <button class="mode-btn" onclick="submitCheck('professional')">
+          <div class="mode-btn__title">▶ GEN REPORT</div>
+          <div class="mode-btn__desc">生成完整分析報告<br/>支援 PDF 下載</div>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Category Table (left col, below query) -->
+  <div class="intel-panel intel-panel--table">
+    <div class="panel-header">
+      <span class="panel-tag">DATABASE</span>
+      <span class="panel-title">類別明細</span>
+    </div>
+    <table class="intel-table">
+      <thead>
+        <tr>
+          <th>#</th><th>類別</th><th>筆數</th><th>佔比</th>
+        </tr>
+      </thead>
+      <tbody id="category-tbody">
+        <tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:24px;font-family:var(--mono);font-size:11px">載入中...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  </div><!-- end left col -->
+
+  <!-- Right Column -->
+  <div class="intel-col">
+
+  <!-- Intel DB -->
+  <div class="intel-panel intel-panel--db">
+    <div class="panel-header">
+      <span class="panel-tag">INTEL DB</span>
+      <span class="panel-title">情報資料庫</span>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="pie-chart"></canvas>
+    </div>
+
+    <hr class="db-divider" />
+
+    <div class="db-bars" id="db-bars">
+      <div style="color:var(--text-muted);font-size:11px;font-family:var(--mono);text-align:center;padding:8px 0">
+        載入中...
+      </div>
+    </div>
+  </div>
+
+  <!-- Resources: Fact Check Links -->
+  <div class="intel-panel intel-panel--resources">
+    <div class="panel-header">
+      <span class="panel-tag">EXT SOURCES</span>
+      <span class="panel-title">查核資源</span>
+    </div>
+    <div class="panel-body" style="padding-top:8px">
+
+      <!-- Tab 切換 -->
+      <div class="fck-tabs">
+        <button class="fck-tab active" onclick="switchFckTab('tw', this)">TW</button>
+        <button class="fck-tab" onclick="switchFckTab('intl', this)">INTL</button>
+        <button class="fck-tab" onclick="switchFckTab('tools', this)">TOOLS</button>
+      </div>
+
+      <!-- 台灣 -->
+      <div class="fck-pane" id="fck-tw">
+        <div class="fck-links">
+          <a class="fck-link" href="https://cofacts.tw" target="_blank" rel="noopener">
+            <span class="fck-link__name">Cofacts 真的假的</span>
+            <span class="fck-link__desc">LINE 訊息協作查核</span>
+          </a>
+          <a class="fck-link" href="https://tfc-taiwan.org.tw" target="_blank" rel="noopener">
+            <span class="fck-link__name">台灣事實查核中心</span>
+            <span class="fck-link__desc">專業媒體查核機構</span>
+          </a>
+          <a class="fck-link" href="https://www.mygopen.com" target="_blank" rel="noopener">
+            <span class="fck-link__name">MyGoPen</span>
+            <span class="fck-link__desc">謠言終結者</span>
+          </a>
+          <a class="fck-link" href="https://www.rumorfighter.org" target="_blank" rel="noopener">
+            <span class="fck-link__name">蘭姆酒吐司</span>
+            <span class="fck-link__desc">媒體識讀與查核</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- 國際 -->
+      <div class="fck-pane hidden" id="fck-intl">
+        <div class="fck-links">
+          <a class="fck-link" href="https://www.snopes.com" target="_blank" rel="noopener">
+            <span class="fck-link__name">Snopes</span>
+            <span class="fck-link__desc">美國最大查核網站</span>
+          </a>
+          <a class="fck-link" href="https://www.politifact.com" target="_blank" rel="noopener">
+            <span class="fck-link__name">PolitiFact</span>
+            <span class="fck-link__desc">政治聲明查核</span>
+          </a>
+          <a class="fck-link" href="https://factcheck.afp.com" target="_blank" rel="noopener">
+            <span class="fck-link__name">AFP Fact Check</span>
+            <span class="fck-link__desc">法新社全球查核</span>
+          </a>
+          <a class="fck-link" href="https://www.reuters.com/fact-check" target="_blank" rel="noopener">
+            <span class="fck-link__name">Reuters Fact Check</span>
+            <span class="fck-link__desc">路透社查核報導</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- 查核工具 -->
+      <div class="fck-pane hidden" id="fck-tools">
+        <div class="fck-links">
+          <a class="fck-link" href="https://toolbox.google.com/factcheck/explorer" target="_blank" rel="noopener">
+            <span class="fck-link__name">Google FCK Explorer</span>
+            <span class="fck-link__desc">搜尋全球查核結果</span>
+          </a>
+          <a class="fck-link" href="https://images.google.com" target="_blank" rel="noopener">
+            <span class="fck-link__name">Google 以圖搜圖</span>
+            <span class="fck-link__desc">圖片來源查詢</span>
+          </a>
+          <a class="fck-link" href="https://www.tineye.com" target="_blank" rel="noopener">
+            <span class="fck-link__name">TinEye</span>
+            <span class="fck-link__desc">圖片反向搜尋</span>
+          </a>
+          <a class="fck-link" href="https://www.invid-project.eu/tools-and-resources/invid-verification-plugin/" target="_blank" rel="noopener">
+            <span class="fck-link__name">InVID / WeVerify</span>
+            <span class="fck-link__desc">影片圖片溯源</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  </div><!-- end right col -->
+
+</div><!-- end intel-main -->
+
+<!-- ── Loading Overlay ────────────────────────────────────── -->
+<div id="loading-overlay" class="hidden loading-overlay">
+
+  <!-- IMAGE SCAN MODE -->
+  <div id="loading-image-mode" class="loading-image-layout hidden">
+    <div class="scan-frame">
+      <img id="scan-img" src="" alt="scanning">
+      <div class="scan-line"></div>
+      <div class="scan-corner scan-corner--tl"></div>
+      <div class="scan-corner scan-corner--tr"></div>
+      <div class="scan-corner scan-corner--bl"></div>
+      <div class="scan-corner scan-corner--br"></div>
+      <div class="scan-coords" id="scan-coords">[X:0000 Y:0000]</div>
+      <div class="scan-badge">SCANNING</div>
+    </div>
+    <div class="scan-terminal">
+      <div class="scan-terminal__title">// IMAGE FORENSICS IN PROGRESS</div>
+      <div id="scan-log" class="scan-terminal__log"></div>
+      <div class="scan-cursor">█</div>
+    </div>
+  </div>
+
+  <!-- TEXT / URL MODE -->
+  <div id="loading-text-mode" class="loading-text-layout hidden">
+    <div class="magnifier-scene">
+      <svg class="magnifier-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="26" cy="26" r="18" stroke="#22d3ee" stroke-width="3"/>
+        <line x1="39" y1="39" x2="56" y2="56" stroke="#22d3ee" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="26" cy="26" r="10" fill="rgba(34,211,238,0.06)"/>
+        <line x1="19" y1="26" x2="33" y2="26" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+        <line x1="26" y1="19" x2="26" y2="33" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      </svg>
+      <div class="magnifier-glow"></div>
+    </div>
+    <div class="text-loading-title" id="loading-text">正在查核中...</div>
+    <div class="text-terminal">
+      <div class="text-terminal__title">// FACT CHECK IN PROGRESS</div>
+      <div id="text-log" class="text-terminal__log"></div>
+      <div class="scan-cursor">█</div>
+    </div>
+  </div>
+
+  <!-- 取消按鈕（兩種模式共用，固定於底部） -->
+  <button id="loading-cancel-btn" class="loading-cancel-btn" onclick="cancelLoading()">
+    ✕ 取消查核
+  </button>
+
+</div>
+
+<!-- ── Error Modal ──────────────────────────────────────── -->
+<div id="error-modal" class="hidden hud-error-backdrop" onclick="hideError()">
+  <div class="hud-error-box" onclick="event.stopPropagation()">
+    <!-- corner brackets -->
+    <span class="hud-corner hud-corner--tl"></span>
+    <span class="hud-corner hud-corner--tr"></span>
+    <span class="hud-corner hud-corner--bl"></span>
+    <span class="hud-corner hud-corner--br"></span>
+    <!-- header -->
+    <div class="hud-error-header">
+      <span class="hud-error-icon">▲</span>
+      <span class="hud-error-title">SYSTEM ALERT</span>
+      <span class="hud-error-code" id="error-code">ERR_UNKNOWN</span>
+    </div>
+    <!-- body -->
+    <div class="hud-error-body">
+      <p class="hud-error-message" id="error-message"></p>
+      <button class="hud-error-dismiss" onclick="hideError()">[ DISMISS ]</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Fact Check Resources ──────────────────────────────── -->
+<!-- ── Attribution Footer ───────────────────────────────── -->
+<footer class="attribution-footer">
+  本編輯資料取自「<a href="https://cofacts.tw" target="_blank" rel="noopener">Cofacts 真的假的</a>」訊息回覆機器人與查證協作社群，採用
+  <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> 授權提供。
+  若欲補充資訊請上 <a href="https://line.me/ti/p/@cofacts" target="_blank" rel="noopener">Cofacts LINE bot</a>
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+// ── System clock ─────────────────────────────────────────
+(function tick() {
+  const el = document.getElementById('sys-time');
+  if (el) el.textContent = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+  setTimeout(tick, 1000);
+})();
+
+// ── Dashboard ─────────────────────────────────────────────
+
+const CHART_COLORS = [
+  "#22d3ee", "#6366f1", "#f59e0b", "#4ade80",
+  "#f43f5e", "#a855f7", "#fb923c", "#2dd4bf",
+  "#e879f9", "#94a3b8",
+];
+
+function countUp(el, target, duration) {
+  const start = performance.now();
+  const isNum = typeof target === 'number';
+  function step(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = isNum
+      ? Math.floor(ease * target).toLocaleString()
+      : (p >= 1 ? target : '...');
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+async function loadDashboard() {
+  try {
+    const res = await fetch(`${API_BASE}/dashboard`);
+    const data = await res.json();
+    renderDashboard(data);
+  } catch {
+    document.getElementById("db-bars").innerHTML =
+      `<div style="color:var(--danger);font-size:11px;font-family:var(--mono);text-align:center;padding:8px 0">後端離線</div>`;
+    document.getElementById("category-tbody").innerHTML =
+      `<tr><td colspan="4" style="color:var(--danger);text-align:center;padding:20px;font-family:var(--mono);font-size:11px">
+        無法連線後端 — 請確認 uvicorn 已啟動
+      </td></tr>`;
+  }
+}
+
+function renderDashboard(data) {
+  const total = data.total || 0;
+  const cats  = data.categories || {};
+  const entries = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+
+  // 移除骨架動畫
+  ["total-count","category-count","top-category"].forEach(id => {
+    document.getElementById(id)?.classList.remove("skeleton-num");
+    document.getElementById(id)?.classList.add("loaded");
+  });
+
+  // Ticker count-up
+  countUp(document.getElementById("total-count"), total, 1400);
+  setTimeout(() => {
+    document.getElementById("category-count").textContent = entries.length;
+    document.getElementById("top-category").textContent  = entries[0]?.[0] || "—";
+  }, 400);
+
+  // Donut chart
+  const top5 = entries.slice(0, 5);
+  new Chart(document.getElementById("pie-chart"), {
+    type: "doughnut",
+    data: {
+      labels: top5.map(([k]) => k),
+      datasets: [{
+        data: top5.map(([, v]) => v),
+        backgroundColor: CHART_COLORS,
+        borderColor: "var(--surface)",
+        borderWidth: 3,
+        hoverOffset: 6,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "68%",
+      plugins: {
+        legend: {
+          position: "right",
+          labels: {
+            color: "#4a6080",
+            font: { size: 10, family: "'Fira Code'" },
+            boxWidth: 9,
+            padding: 10,
+          },
+        },
+      },
+    },
+  });
+
+  // Bar rows (top 5)
+  const maxVal = top5[0]?.[1] || 1;
+  document.getElementById("db-bars").innerHTML = top5.map(([cat, count], i) => {
+    const pct = total ? ((count / total) * 100).toFixed(1) : "0";
+    return `<div class="db-bar-item">
+      <span class="db-bar-label">${esc(cat)}</span>
+      <div class="db-bar-track">
+        <div class="db-bar-fill" id="bar-fill-${i}"
+          style="background:${CHART_COLORS[i]};width:0%"></div>
+      </div>
+      <span class="db-bar-pct">${pct}%</span>
+    </div>`;
+  }).join("");
+
+  // Animate bars after render
+  requestAnimationFrame(() => {
+    top5.forEach(([, count], i) => {
+      const w = Math.round((count / maxVal) * 100);
+      setTimeout(() => {
+        const el = document.getElementById(`bar-fill-${i}`);
+        if (el) el.style.width = w + "%";
+      }, 200 + i * 80);
+    });
+  });
+
+  // Category table
+  document.getElementById("category-tbody").innerHTML = entries.map(([cat, count], i) => {
+    const pct = total ? ((count / total) * 100).toFixed(1) : "0.0";
+    return `<tr>
+      <td>${String(i + 1).padStart(2, '0')}</td>
+      <td>${esc(cat)}</td>
+      <td>${count.toLocaleString()}</td>
+      <td>${pct}%</td>
+    </tr>`;
+  }).join("");
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+loadDashboard();
+
+function toggleClearBtn(type, value) {
+  const btn = document.getElementById(`clear-${type}-btn`);
+  if (!btn) return;
+  btn.classList.toggle("hidden", !value.trim());
+}
+
+function clearInput(type) {
+  if (type === "text") {
+    document.getElementById("text-input").value = "";
+    toggleClearBtn("text", "");
+  } else if (type === "url") {
+    document.getElementById("url-input").value = "";
+    toggleClearBtn("url", "");
+  } else if (type === "image") {
+    selectedFile = null;
+    selectedFileDataURL = null;
+    document.getElementById("image-file").value = "";
+    document.getElementById("image-preview").classList.add("hidden");
+    document.getElementById("upload-area").style.display = "";
+    toggleClearBtn("image", "");
+  }
+}
+
+function switchFckTab(id, btn) {
+  document.querySelectorAll(".fck-pane").forEach(p => p.classList.add("hidden"));
+  document.querySelectorAll(".fck-tab").forEach(b => b.classList.remove("active"));
+  document.getElementById("fck-" + id).classList.remove("hidden");
+  btn.classList.add("active");
+}
+</script>
+</body>
+</html>

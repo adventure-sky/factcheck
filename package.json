@@ -1,0 +1,22 @@
+{
+  "name": "fact-checking",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "allow-scripts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@lavamoat/allow-scripts": "^4.0.0"
+  },
+  "lavamoat": {
+    "allowScripts": {
+      "$root$": false
+    }
+  }
+}

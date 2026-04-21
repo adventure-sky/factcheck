@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>查核結果 — 假訊息情報中心</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Fira+Code:wght@300;400;500;600&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ── Page-level layout ───────────────────────────────── */
+    .result-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    /* ── Mission Header ──────────────────────────────────── */
+    .mission-header {
+      padding: 28px 0 20px;
+      border-bottom: 1px solid rgba(34,211,238,0.08);
+      margin-bottom: 24px;
+      animation: fadeDown 0.5s ease both;
+    }
+    .mission-header__crumb {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mission-header__crumb::before { content: '//'; opacity: 0.4; }
+    .mission-header__input {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--surface-2);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--radius);
+      padding: 8px 14px;
+      display: inline-block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .mission-header__input::before {
+      content: 'INPUT> ';
+      color: var(--primary);
+      opacity: 0.7;
+    }
+
+    /* ── Main two-column grid ────────────────────────────── */
+    .result-grid {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      align-items: start;
+      margin-bottom: 24px;
+    }
+
+    /* ── Verdict Panel (left) ────────────────────────────── */
+    .verdict-panel {
+      animation: fadeUp 0.45s ease 0.1s both;
+    }
+    .verdict-panel .panel-header { padding-bottom: 0; }
+
+    .verdict-body { padding: 16px 18px 18px; }
+
+    .verdict-label-big {
+      font-family: var(--display);
+      font-size: 28px;
+      line-height: 1;
+      margin: 14px 0 6px;
+      letter-spacing: 0.04em;
+    }
+    .verdict-label-big.danger  { color: var(--danger);  text-shadow: 0 0 20px rgba(239,68,68,0.3); }
+    .verdict-label-big.warning { color: var(--amber);   text-shadow: 0 0 20px rgba(245,158,11,0.3); }
+    .verdict-label-big.success { color: var(--green);   text-shadow: 0 0 20px rgba(74,222,128,0.3); }
+
+    .verdict-icon-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .verdict-icon-big { font-size: 32px; }
+
+    /* Score gauge */
+    .gauge-wrap { margin: 16px 0 8px; }
+    .gauge-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .gauge-track {
+      height: 5px;
+      background: var(--surface-3);
+      position: relative;
+      border-radius: 0;
+      overflow: hidden;
+    }
+    /* tick marks */
+    .gauge-track::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      width: 1px; height: 100%;
+      background: var(--border-hi);
+      z-index: 1;
+    }
+    .gauge-fill {
+      height: 100%;
+      transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+      position: relative;
+    }
+    .gauge-fill::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 3px; height: 100%;
+      background: rgba(255,255,255,0.7);
+    }
+    .gauge-pct {
+      font-family: var(--display);
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* Divider */
+    .v-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 14px 0;
+    }
+
+    /* Credibility score hex */
+    .score-hex-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .score-hex-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .score-hex-val {
+      font-family: var(--display);
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    /* ── Analysis Panel (right) ──────────────────────────── */
+    .analysis-panel {
+      animation: fadeUp 0.45s ease 0.2s both;
+    }
+    .panel-body { padding: 0 18px 18px; }
+
+    /* ── Signal Intel (RAG) ──────────────────────────────── */
+    .signal-wrap {
+      margin-bottom: 20px;
+      animation: fadeUp 0.45s ease 0.35s both;
+    }
+    .signal-note {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #94aec6;
+      margin-bottom: 12px;
+      line-height: 1.6;
+      letter-spacing: 0.02em;
+    }
+    .signal-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .signal-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 2px; height: 100%;
+      border-radius: var(--radius) 0 0 var(--radius);
+    }
+    .signal-card.has-reply::before { background: var(--primary); }
+    .signal-card.no-reply::before  { background: var(--text-muted); }
+
+    .signal-card__meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .signal-card__title {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .signal-card__text {
+      font-size: 12px;
+      color: #94aec6;
+      line-height: 1.7;
+    }
+    .signal-card__url {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--primary);
+      word-break: break-all;
+      display: block;
+      margin-top: 4px;
+    }
+    .signal-reply {
+      margin-top: 10px;
+      background: var(--primary-dim);
+      border-left: 2px solid var(--primary);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 8px 12px;
+    }
+    .signal-reply__label {
+      font-family: var(--mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .signal-reply__text {
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    /* AI quick check */
+    .ai-check-btn {
+      margin-top: 8px;
+      font-size: 10px;
+      font-family: var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border: 1px solid rgba(34,211,238,0.3);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--primary);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .ai-check-btn:hover { background: var(--primary-dim); }
+    .ai-check-btn:disabled { opacity: 0.4; cursor: wait; }
+    .quick-result { margin-top: 8px; }
+
+    /* ── Fact Check ──────────────────────────────────────── */
+    .fact-check-wrap {
+      margin-bottom: 20px;
+      animation: fadeUp 0.45s ease 0.4s both;
+    }
+
+    /* ── Analysis Card ───────────────────────────────────── */
+    .analysis-card {
+      margin-bottom: 20px;
+      animation: fadeUp 0.45s ease 0.3s both;
+    }
+    .analysis-text {
+      font-size: 13px;
+      color: #b0c8e0;
+      line-height: 1.8;
+    }
+
+    /* ── Command Input (Follow-up) ───────────────────────── */
+    .cmd-input-wrap {
+      margin-bottom: 20px;
+      animation: fadeUp 0.45s ease 0.45s both;
+    }
+    .cmd-input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .cmd-input-row .form-input {
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    .follow-up-thread {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .fu-turn { display: flex; flex-direction: column; gap: 6px; }
+    .fu-q {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--primary);
+      opacity: 0.85;
+    }
+    .fu-q::before { content: "▶ "; }
+    .fu-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.75;
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 10px 14px;
+      background: var(--surface-2);
+      border-left: 2px solid var(--primary);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+    .fu-thinking {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-left: 2px solid var(--border-hi);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      animation: skeletonPulse 1.2s ease-in-out infinite;
+    }
+
+    /* ── Action Row ──────────────────────────────────────── */
+    .action-row {
+      display: flex;
+      gap: 12px;
+      animation: fadeUp 0.45s ease 0.5s both;
+    }
+
+    /* ── Steps list override ─────────────────────────────── */
+    .step__num-badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: #94aec6;
+      background: var(--surface-3);
+      border: 1px solid rgba(34,211,238,0.2);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      margin-top: 2px;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .result-grid { grid-template-columns: 1fr; }
+      .verdict-label-big { font-size: 24px; }
+    }
+    @media (max-width: 600px) {
+      .result-wrap { padding: 0 14px 40px; }
+      .action-row { flex-direction: column; }
+      .sys-bar__right { display: none; }
+    }
+
+    /* ── Image Scan Animation ─────────────────────────── */
+    .img-scan-wrap {
+      position: relative;
+      display: inline-block;
+    }
+    .img-scan-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(34,211,238,0.10) 50%,
+        transparent 100%
+      );
+      background-size: 100% 40px;
+      animation: imgScan 1.6s linear 3;
+      opacity: 0;
+    }
+    .img-scan-wrap.scanning .img-scan-overlay {
+      opacity: 1;
+    }
+    .img-scan-coords {
+      position: absolute;
+      bottom: 6px;
+      left: 8px;
+      font-family: var(--mono);
+      font-size: 9px;
+      color: rgba(34,211,238,0.7);
+      letter-spacing: .06em;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .img-scan-wrap.scanning .img-scan-coords {
+      opacity: 1;
+    }
+    @keyframes imgScan {
+      0%   { background-position: 0 -40px; }
+      100% { background-position: 0 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sys Bar ────────────────────────────────────────── -->
+<div class="sys-bar">
+  <div class="sys-bar__inner">
+    <span class="sys-item"><span class="sys-dot"></span>GROQ AI</span>
+    <span class="sys-item"><span class="sys-dot"></span>CHROMADB</span>
+    <span class="sys-item"><span class="sys-dot"></span>GOOGLE FCK</span>
+    <div class="sys-bar__right">
+      <span>MODE: CITIZEN ANALYSIS</span>
+      <span id="sys-time">--:--:--</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Nav ───────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav__inner">
+    <a class="nav__logo" href="index.html">
+      <div class="nav__logo-icon">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 1L2 3.5V8C2 11.5 4.5 14.2 8 15C11.5 14.2 14 11.5 14 8V3.5L8 1Z" stroke="#22d3ee" stroke-width="1.2" stroke-linejoin="round"/>
+          <path d="M5 8L7 10L11 6" stroke="#22d3ee" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      假訊息情報中心
+    </a>
+    <div class="nav__links">
+      <a href="index.html">← 返回首頁</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Content ───────────────────────────────────────── -->
+<div class="result-wrap">
+
+  <!-- Mode Toggle -->
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+    <div style="display:inline-flex;border:1px solid var(--border-hi);border-radius:3px;overflow:hidden;font-family:var(--mono);font-size:10px">
+      <span style="padding:5px 14px;background:var(--primary);color:var(--bg);letter-spacing:.08em">CITIZEN</span>
+      <a id="pro-toggle-btn" href="result-professional.html" style="padding:5px 14px;color:var(--text-muted);letter-spacing:.08em;text-decoration:none;cursor:pointer" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">PROFESSIONAL</a>
+    </div>
+  </div>
+
+  <!-- Mission Header -->
+  <div class="mission-header">
+    <div class="mission-header__crumb">DISINFORMATION INTELLIGENCE CENTER &nbsp;/&nbsp; CITIZEN FACT CHECK</div>
+    <div class="mission-header__input" id="input-preview">載入中...</div>
+  </div>
+
+  <!-- Image Evidence (僅圖片查核時顯示) -->
+  <div id="image-evidence" class="hidden" style="margin-bottom:16px">
+    <div class="intel-panel" style="padding:0;overflow:hidden">
+      <div class="panel-header" style="padding:8px 14px">
+        <span class="panel-tag">IMAGE EVIDENCE</span>
+        <span class="panel-title" style="font-size:10px;margin-left:8px;color:var(--text-muted)">原始送查圖片</span>
+      </div>
+      <div style="padding:12px;display:flex;justify-content:center;background:var(--bg)">
+        <div class="img-scan-wrap" id="img-scan-wrap">
+          <img id="evidence-img" src="" alt="查核圖片"
+            style="max-width:100%;max-height:320px;object-fit:contain;border:1px solid var(--border-hi);border-radius:2px;display:block" />
+          <div class="img-scan-overlay" id="img-scan-overlay"></div>
+          <div class="img-scan-coords" id="img-scan-coords">SCAN: 0,0 // ANALYZING...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Grid: Verdict + Analysis -->
+  <div class="result-grid">
+
+    <!-- LEFT: Verdict Panel -->
+    <div class="intel-panel verdict-panel">
+      <div class="panel-header">
+        <span class="panel-tag">THREAT ASSESSMENT</span>
+      </div>
+      <div class="verdict-body">
+        <div class="verdict-icon-row">
+          <span class="verdict-icon-big" id="verdict-icon">⏳</span>
+          <div id="credibility-label-badge"></div>
+        </div>
+        <div class="verdict-label-big" id="verdict-label">分析中</div>
+
+        <div class="gauge-wrap">
+          <div class="gauge-label">
+            <span>FALSE</span>
+            <span>CREDIBILITY</span>
+            <span>TRUE</span>
+          </div>
+          <div class="gauge-track">
+            <div class="gauge-fill" id="gauge-fill" style="width:0%"></div>
+          </div>
+          <div class="gauge-pct"><span id="score-pct">—</span></div>
+        </div>
+
+        <hr class="v-divider" />
+
+        <div class="score-hex-row">
+          <span class="score-hex-label">SCORE</span>
+          <span class="score-hex-val" id="score-hex">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Field Analysis -->
+    <div class="intel-panel analysis-panel">
+      <div class="panel-header">
+        <span class="panel-tag">FIELD ANALYSIS</span>
+        <span class="panel-title">逐步查核記錄</span>
+      </div>
+      <div class="panel-body">
+        <div class="steps" id="steps-container">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p class="loading__text">載入分析結果...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Synthesis / Analysis Card -->
+  <div class="intel-panel analysis-card" id="analysis-card" style="display:none">
+    <div class="panel-header">
+      <span class="panel-tag">SYNTHESIS</span>
+      <span class="panel-title">綜合說明</span>
+    </div>
+    <div class="panel-body">
+      <p class="analysis-text" id="analysis-text"></p>
+    </div>
+  </div>
+
+  <!-- Media Literacy Tip -->
+  <div class="tip-box mb-16" id="tip-box" style="display:none">
+    <div class="tip-box__icon">⚡</div>
+    <div>
+      <div class="tip-box__title">識讀警示</div>
+      <div class="tip-box__body" id="tip-text"></div>
+    </div>
+  </div>
+
+  <!-- Signal Intelligence (RAG) -->
+  <div class="signal-wrap" id="rag-section" style="display:none">
+    <div class="section-title">SIGNAL INTEL &nbsp;— 相關討論參考</div>
+    <p class="signal-note">Cofacts 資料庫語義相近記錄（≥ 50% 相似度）。有查核回應者直接顯示結論；尚無回應者可點擊「AI 協助查核」取得 AI 研判。</p>
+    <div id="rag-list"></div>
+  </div>
+
+  <!-- Google Fact Check -->
+  <div class="fact-check-wrap" id="fact-check-section" style="display:none">
+    <div class="section-title">EXTERNAL VERIFICATION &nbsp;— Google Fact Check</div>
+    <div id="fact-check-list"></div>
+  </div>
+
+  <!-- Command Input -->
+  <div class="intel-panel cmd-input-wrap" id="follow-up-card">
+    <div class="panel-header">
+      <span class="panel-tag">COMMAND INPUT</span>
+      <span class="panel-title">追問 AI 分析師</span>
+    </div>
+    <div class="panel-body">
+      <div class="cmd-input-row">
+        <input class="form-input" id="follow-up-input" placeholder="例如：為什麼這個來源不可信？" />
+        <button class="btn btn--primary" onclick="sendFollowUp()">送出</button>
+      </div>
+      <div id="follow-up-thread" class="follow-up-thread"></div>
+    </div>
+  </div>
+
+  <!-- Action Row -->
+  <div class="action-row mt-16">
+    <a href="index.html" class="btn btn--ghost btn--full">← 重新查核</a>
+    <a id="pro-report-btn" href="result-professional.html" class="btn btn--secondary btn--full">生成完整報告 →</a>
+  </div>
+
+</div>
+
+<script>
+const API_BASE = "http://localhost:8000";
+
+// 圖片模式「生成完整報告」→ 重打 professional API
+document.getElementById("pro-report-btn").addEventListener("click", async function(e) {
+  const raw = sessionStorage.getItem("checkResult_citizen")
+           || sessionStorage.getItem("checkResult");
+  if (!raw) return;
+  const data = JSON.parse(raw);
+  if (data.inputType !== "image" || !data.imageDataURL) return;
+
+  e.preventDefault();
+  this.textContent = "分析中...";
+  this.style.pointerEvents = "none";
+
+  try {
+    const res = await fetch(data.imageDataURL);
+    const blob = await res.blob();
+    const formData = new FormData();
+    formData.append("image", blob, data.input || "image.png");
+    formData.append("mode", "professional");
+
+    const apiRes = await fetch(`${API_BASE}/check/image`, { method: "POST", body: formData });
+    if (!apiRes.ok) throw new Error(`HTTP ${apiRes.status}`);
+    const proData = await apiRes.json();
+
+    const proStored = { ...proData, input: data.input, inputType: "image", imageDataURL: data.imageDataURL };
+    sessionStorage.setItem("checkResult_professional", JSON.stringify(proStored));
+    sessionStorage.setItem("checkResult", JSON.stringify(proStored));
+  } catch (err) {
+    console.error("professional image re-fetch failed:", err);
+  }
+
+  window.location.href = "result-professional.html";
+});
+
+// sys clock
+(function tick() {
+  const el = document.getElementById('sys-time');
+  if (el) el.textContent = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+  setTimeout(tick, 1000);
+})();
+
+/* ── 數字解碼動畫 ─────────────────────────────────────── */
+function decodeNumber(el, target, suffix = "", duration = 1100) {
+  const targetStr = String(target);
+  const len = targetStr.length;
+  let elapsed = 0;
+
+  function tick() {
+    const progress = Math.min(elapsed / duration, 1);
+    if (progress < 1) {
+      let display = "";
+      for (let i = 0; i < len; i++) {
+        // 每個位數依序從左鎖定
+        const lockAt = ((i + 1) / len) * 0.78;
+        display += progress >= lockAt ? targetStr[i] : Math.floor(Math.random() * 10);
+      }
+      el.textContent = display + suffix;
+      // 越接近終點越慢：40ms → 180ms
+      const interval = 40 + progress * 140;
+      elapsed += interval;
+      setTimeout(tick, interval);
+    } else {
+      el.textContent = target + suffix;
+      // 鎖定光暈
+      const orig = el.style.textShadow;
+      el.style.textShadow = "0 0 18px currentColor, 0 0 6px currentColor";
+      setTimeout(() => { el.style.textShadow = orig; }, 450);
+    }
+  }
+  tick();
+}
+
+const LABEL_CONFIG = {
+  "假訊息": { icon: "✕", cls: "danger",  bar: "#ef4444", badge: "danger" },
+  "待查證": { icon: "?", cls: "warning", bar: "#f59e0b", badge: "warning" },
+  "可信":   { icon: "✓", cls: "success", bar: "#4ade80", badge: "success" },
+};
+function normalizeLabel(label) {
+  if (LABEL_CONFIG[label]) return label;
+  const l = label.toLowerCase();
+  if (["假","錯","false","fake"].some(k => l.includes(k))) return "假訊息";
+  if (["可信","真實","正確","true","verified"].some(k => l.includes(k))) return "可信";
+  return "待查證";
+}
+
+// 圖片 AI 偵測專用標籤
+const IMAGE_LABEL_CONFIG = {
+  "高度疑似 AI 生成": { icon: "⚠", cls: "danger",  bar: "#ef4444", badge: "danger" },
+  "可能為 AI 生成":   { icon: "?", cls: "warning", bar: "#f59e0b", badge: "warning" },
+  "疑似真實照片":     { icon: "~", cls: "warning", bar: "#22d3ee", badge: "neutral" },
+  "確認為真實照片":   { icon: "✓", cls: "success", bar: "#4ade80", badge: "success" },
+};
+
+function renderResult(data) {
+  if (data.inputType === "image") { renderImageResult(data); return; }
+
+  // Input preview
+  const preview = data.input || "";
+  document.getElementById("input-preview").textContent =
+    preview.length > 100 ? preview.slice(0, 100) + "…" : preview;
+
+  // Verdict
+  const label = normalizeLabel(data.credibility_label || "待查證");
+  const cfg = LABEL_CONFIG[label];
+  const score = data.credibility_score ?? 0.5;
+  const pct = Math.round(score * 100);
+
+  document.getElementById("verdict-icon").textContent = cfg.icon;
+  document.getElementById("verdict-label").textContent = label;
+  document.getElementById("verdict-label").className = `verdict-label-big ${cfg.cls}`;
+  document.getElementById("credibility-label-badge").innerHTML =
+    `<span class="label label--${cfg.badge}">${label}</span>`;
+
+  // Gauge
+  setTimeout(() => {
+    const fill = document.getElementById("gauge-fill");
+    fill.style.width = pct + "%";
+    fill.style.background = cfg.bar;
+    fill.style.boxShadow = `0 0 8px ${cfg.bar}60`;
+    decodeNumber(document.getElementById("score-pct"), pct, "% CREDIBILITY");
+    decodeNumber(document.getElementById("score-hex"), Math.round(score * 100), " / 100");
+  }, 120);
+
+  // Steps
+  renderSteps(data.steps || []);
+
+  // Analysis
+  if (data.analysis) {
+    document.getElementById("analysis-text").textContent = data.analysis;
+    document.getElementById("analysis-card").style.display = "block";
+  }
+
+  // Tip
+  if (data.media_literacy_tip) {
+    document.getElementById("tip-text").textContent = data.media_literacy_tip;
+    document.getElementById("tip-box").style.display = "flex";
+  }
+
+  // RAG
+  document.getElementById("rag-section").style.display = "block";
+  const ragList = document.getElementById("rag-list");
+  if (data.rag_sources?.length) {
+    ragList.innerHTML = data.rag_sources.map((src, i) => {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const plainText = src.text.replace(urlRegex, "").trim();
+      const urls = [...src.text.matchAll(urlRegex)].map(m => m[1]);
+
+      const titleHtml = src.title
+        ? `<a href="${escHtml(src.url)}" target="_blank" rel="noopener" class="signal-card__title" style="display:block;color:var(--text);text-decoration:none">
+             ${escHtml(src.title)}
+           </a>`
+        : `<div>
+            ${plainText ? `<p class="signal-card__text">${escHtml(plainText)}</p>` : ""}
+            ${urls.map(u => `<a href="${escHtml(u)}" target="_blank" rel="noopener" class="signal-card__url">${u.length > 70 ? u.slice(0,67)+"…" : u}</a>`).join("")}
+           </div>`;
+
+      const cofactsLink = src.cofacts_url
+        ? `<a href="${escHtml(src.cofacts_url)}" target="_blank" rel="noopener"
+             style="font-size:10px;font-family:var(--mono);color:var(--primary);letter-spacing:.05em;text-decoration:none;opacity:.8"
+             onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.8'">
+             [COFACTS ↗]
+           </a>`
+        : "";
+
+      return `<div class="signal-card ${src.has_reply ? 'has-reply' : 'no-reply'}">
+        <div class="signal-card__meta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          ${src.category ? `<span class="label label--default">${escHtml(src.category)}</span>` : ""}
+          ${cofactsLink}
+        </div>
+        ${titleHtml}
+        ${src.has_reply
+          ? `<div class="signal-reply">
+               <div class="signal-reply__label">查核回應</div>
+               <div class="signal-reply__text">${linkify(escHtml(src.reply))}</div>
+             </div>`
+          : `<div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+               <span style="font-size:11px;color:#7a9ab8;font-family:var(--mono)">NO REPLY ON RECORD</span>
+               <button class="ai-check-btn" data-text="${escHtml(src.text || '')}" onclick="quickCheck(this)">
+                 AI 協助查核
+               </button>
+             </div>
+             <div class="quick-result"></div>`
+        }
+      </div>`;
+    }).join("");
+  } else {
+    ragList.innerHTML = `<p class="signal-note" style="padding:8px 0">Cofacts 資料庫中未找到語義相似且有查核回應的記錄，建議參考 Google Fact Check 結果或自行查證。</p>`;
+  }
+
+  // Fact Check
+  if (data.fact_check_claims?.length) {
+    const list = document.getElementById("fact-check-list");
+    list.innerHTML = data.fact_check_claims.map(c =>
+      `<div class="signal-card has-reply">
+        <div style="font-size:13px;color:var(--text);margin-bottom:6px;font-weight:500">${escHtml(c.text || "")}</div>
+        <div style="font-size:11px;color:var(--text-secondary);font-family:var(--mono)">
+          VERDICT: <span style="color:var(--amber)">${escHtml(c.rating || "")}</span>
+          &nbsp;|&nbsp; SOURCE: ${escHtml(c.publisher || "")}
+          ${c.url ? `&nbsp;&mdash;&nbsp;<a href="${escHtml(c.url)}" target="_blank" rel="noopener" style="color:var(--primary)">查看原文</a>` : ""}
+        </div>
+      </div>`
+    ).join("");
+    document.getElementById("fact-check-section").style.display = "block";
+  }
+}
+
+function renderSteps(steps) {
+  const container = document.getElementById("steps-container");
+  if (!steps.length) {
+    container.innerHTML = `<p class="text-muted text-sm font-mono" style="padding:12px 0">NO ANALYSIS DATA.</p>`;
+    return;
+  }
+  container.innerHTML = steps.map((s, i) => `
+    <div class="step" style="animation-delay:${i * 0.1}s">
+      <span class="step__num-badge">${String(i+1).padStart(2,'0')}</span>
+      <div class="step__icon" style="margin-left:10px">${s.icon || "▸"}</div>
+      <div class="step__content">
+        <div class="step__title">${escHtml(s.title || "")}</div>
+        <div class="step__body">${escHtml(s.content || "")}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderImageResult(data) {
+  document.getElementById("input-preview").textContent = data.input || "圖片查核";
+
+  // 顯示原始圖片 + 掃描動畫
+  if (data.imageDataURL) {
+    document.getElementById("evidence-img").src = data.imageDataURL;
+    document.getElementById("image-evidence").classList.remove("hidden");
+    const wrap = document.getElementById("img-scan-wrap");
+    const coords = document.getElementById("img-scan-coords");
+    wrap.classList.add("scanning");
+    // 偽座標數字動畫
+    const coordTimer = setInterval(() => {
+      const x = Math.floor(Math.random() * 9999).toString().padStart(4,"0");
+      const y = Math.floor(Math.random() * 9999).toString().padStart(4,"0");
+      coords.textContent = `SCAN: ${x},${y} // ANALYZING...`;
+    }, 120);
+    // 動畫結束後（1.6s × 3 次 = 4.8s）清除 class
+    setTimeout(() => {
+      wrap.classList.remove("scanning");
+      clearInterval(coordTimer);
+      coords.textContent = "SCAN COMPLETE";
+      setTimeout(() => { coords.style.opacity = "0"; }, 800);
+    }, 4800);
+  }
+  const aiLabel = data.ai_label || "無法判斷";
+  const cfg = IMAGE_LABEL_CONFIG[aiLabel] || IMAGE_LABEL_CONFIG["疑似真實照片"] || { icon: "?", cls: "warning", bar: "#f59e0b", badge: "warning" };
+  const aiProb = data.ai_probability ?? 0.5;
+  const pct = Math.round(aiProb * 100);
+
+  document.getElementById("verdict-icon").textContent = cfg.icon;
+  document.getElementById("verdict-label").textContent = aiLabel;
+  document.getElementById("verdict-label").className = `verdict-label-big ${cfg.cls}`;
+  document.getElementById("credibility-label-badge").innerHTML =
+    `<span class="label label--${cfg.badge}">${aiLabel}</span>`;
+
+  setTimeout(() => {
+    const fill = document.getElementById("gauge-fill");
+    fill.style.width = pct + "%";
+    fill.style.background = cfg.bar;
+    decodeNumber(document.getElementById("score-pct"), pct, "% AI PROBABILITY");
+    decodeNumber(document.getElementById("score-hex"), pct, " / 100");
+  }, 120);
+
+  const steps = [
+    { icon: "🖼", title: "IMAGE CONTENT DESCRIPTION", content: data.visual_description || "無法取得描述" },
+  ];
+  if (data.anomalies?.length) {
+    steps.push({ icon: "⚠", title: "ANOMALY DETECTION", content: data.anomalies.join("、") });
+  }
+  steps.push({
+    icon: "🤖",
+    title: `AI GENERATION ASSESSMENT (CONFIDENCE: ${escHtml(data.confidence || "低")})`,
+    content: data.analysis || "",
+  });
+  renderSteps(steps);
+
+  if (data.analysis) {
+    document.getElementById("analysis-text").textContent = data.analysis;
+    document.getElementById("analysis-card").style.display = "block";
+  }
+  if (data.media_literacy_tip) {
+    document.getElementById("tip-text").textContent = data.media_literacy_tip;
+    document.getElementById("tip-box").style.display = "flex";
+  }
+  document.getElementById("follow-up-card").style.display = "none";
+}
+
+function typewriterEffect(el, text, speedMs = 18) {
+  el.textContent = "";
+  let i = 0;
+  const tick = () => {
+    if (i < text.length) {
+      el.textContent += text[i++];
+      setTimeout(tick, speedMs);
+    }
+  };
+  tick();
+}
+
+const _followUpHistory = [];  // [{ question, answer }]
+
+async function sendFollowUp() {
+  const inputEl = document.getElementById("follow-up-input");
+  const input = inputEl.value.trim();
+  if (!input) return;
+
+  const stored = JSON.parse(sessionStorage.getItem("checkResult_citizen") || sessionStorage.getItem("checkResult") || "{}");
+  const thread = document.getElementById("follow-up-thread");
+
+  // 加入問題泡泡 + thinking 佔位
+  const turnDiv = document.createElement("div");
+  turnDiv.className = "fu-turn";
+  turnDiv.innerHTML = `
+    <div class="fu-q">${escHtml(input)}</div>
+    <div class="fu-thinking">ANALYZING...</div>`;
+  thread.appendChild(turnDiv);
+  inputEl.value = "";
+
+  // 捲到最新
+  turnDiv.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+  try {
+    const res = await fetch(`${API_BASE}/check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: stored.input || "",
+        mode: "citizen",
+        follow_up: input,
+        conversation_history: _followUpHistory,
+      }),
+    });
+    const data = await res.json();
+    const answer = data.analysis || "無回應";
+
+    // 替換 thinking 為實際回覆（打字機效果）
+    const answerEl = document.createElement("div");
+    answerEl.className = "fu-a";
+    turnDiv.querySelector(".fu-thinking").replaceWith(answerEl);
+    typewriterEffect(answerEl, answer);
+
+    // 記錄到歷史
+    _followUpHistory.push({ question: input, answer });
+  } catch (e) {
+    turnDiv.querySelector(".fu-thinking").textContent = `ERROR: ${e.message}`;
+    turnDiv.querySelector(".fu-thinking").style.color = "var(--danger)";
+  }
+}
+
+// Enter 鍵送出
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("follow-up-input")?.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendFollowUp(); }
+  });
+});
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+async function quickCheck(btn) {
+  const text = btn.dataset.text;
+  const resultDiv = btn.closest('.signal-card').querySelector('.quick-result');
+  btn.disabled = true;
+  btn.textContent = "查核中...";
+  resultDiv.innerHTML = `<span style="font-size:11px;color:var(--text-muted);font-family:var(--mono)">ANALYZING...</span>`;
+  try {
+    const body = { text };
+    const res = await fetch(`${API_BASE}/check/quick`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const borderColor = data.credibility_label === "假訊息" ? "var(--danger)"
+                       : data.credibility_label === "可信"   ? "var(--green)"
+                       : "var(--amber)";
+    const textColor = data.credibility_label === "假訊息" ? "var(--danger)"
+                     : data.credibility_label === "可信"   ? "var(--green)"
+                     : "var(--amber)";
+    resultDiv.innerHTML = `
+      <div class="signal-reply" style="border-left-color:${borderColor}">
+        <div class="signal-reply__label" style="color:${textColor}">AI ASSESSMENT: ${escHtml(data.credibility_label)}</div>
+        <div class="signal-reply__text">${escHtml(data.summary)}</div>
+      </div>`;
+    btn.style.display = "none";
+  } catch (e) {
+    resultDiv.innerHTML = `<span style="font-size:11px;color:var(--danger);font-family:var(--mono)">ANALYSIS FAILED</span>`;
+    btn.disabled = false;
+    btn.textContent = "AI 協助查核";
+  }
+}
+
+function linkify(str) {
+  return str.replace(/(https?:\/\/[^\s&"<>]+)/g, url => {
+    const display = url.length > 60 ? url.slice(0, 57) + "…" : url;
+    return `<a href="${url}" target="_blank" rel="noopener" style="color:var(--primary);word-break:break-all">${display}</a>`;
+  });
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  const stored = sessionStorage.getItem("checkResult_citizen")
+              || sessionStorage.getItem("checkResult");
+  if (!stored) {
+    document.getElementById("input-preview").textContent = "找不到查核結果，請重新查核。";
+    return;
+  }
+  renderResult(JSON.parse(stored));
+});
+</script>
+
+<!-- ── Attribution Footer ───────────────────────────────── -->
+<footer class="attribution-footer">
+  本編輯資料取自「<a href="https://cofacts.tw" target="_blank" rel="noopener">Cofacts 真的假的</a>」訊息回覆機器人與查證協作社群，採用
+  <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> 授權提供。
+  若欲補充資訊請上 <a href="https://line.me/ti/p/@cofacts" target="_blank" rel="noopener">Cofacts LINE bot</a>
+</footer>
+
+</body>
+</html>

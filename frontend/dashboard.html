@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>假訊息儀表板 — 假訊息情報中心</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .page-header {
+      padding: 48px 0 32px;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      padding: 24px;
+      text-align: center;
+    }
+    .stat-card__num {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .stat-card__label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    .chart-card { padding: 24px; }
+    .chart-title {
+      font-weight: 600;
+      margin-bottom: 20px;
+      font-size: 15px;
+    }
+    .chart-container { position: relative; height: 260px; }
+    .category-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .category-table th, .category-table td {
+      padding: 10px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .category-table th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+    .category-table td:last-child { text-align: right; color: var(--text-secondary); }
+    .bar-mini {
+      display: inline-block;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 4px;
+      vertical-align: middle;
+      margin-left: 8px;
+      opacity: 0.7;
+    }
+    @media (max-width: 640px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .charts-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav__inner">
+    <a class="nav__logo" href="index.html">
+      <div class="nav__logo-icon">🛡️</div>
+      假訊息情報中心
+    </a>
+    <div class="nav__links">
+      <a href="index.html">查核</a>
+      <a href="dashboard.html" class="active">儀表板</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container container--wide">
+
+  <div class="page-header">
+    <h1 style="font-size:26px; font-weight:700; margin-bottom:8px">假訊息儀表板</h1>
+    <p class="text-secondary text-sm">資料來源：Cofacts 台灣假訊息查核資料集</p>
+  </div>
+
+  <!-- 統計卡片 -->
+  <div class="stats-row">
+    <div class="stat-card card">
+      <div class="stat-card__num" id="total-count">--</div>
+      <div class="stat-card__label">Cofacts 查核記錄總數</div>
+    </div>
+    <div class="stat-card card">
+      <div class="stat-card__num" id="category-count">--</div>
+      <div class="stat-card__label">假訊息類別數</div>
+    </div>
+    <div class="stat-card card">
+      <div class="stat-card__num" id="top-category">--</div>
+      <div class="stat-card__label">最多假訊息類別</div>
+    </div>
+  </div>
+
+  <!-- 圖表 -->
+  <div class="charts-row">
+    <div class="chart-card card">
+      <div class="chart-title">假訊息類別分佈</div>
+      <div class="chart-container">
+        <canvas id="pie-chart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card card">
+      <div class="chart-title">各類別筆數（Top 10）</div>
+      <div class="chart-container">
+        <canvas id="bar-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 詳細表格 -->
+  <div class="card mb-32">
+    <div class="chart-title">類別明細</div>
+    <table class="category-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>類別</th>
+          <th>筆數</th>
+          <th>佔比</th>
+        </tr>
+      </thead>
+      <tbody id="category-tbody">
+        <tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:24px">載入中...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex justify-between items-center mb-32">
+    <p class="text-xs text-muted">資料來自 ChromaDB 向量資料庫，反映最近一次建置結果</p>
+    <a href="index.html" class="btn btn--primary">開始查核</a>
+  </div>
+
+</div>
+
+<script>
+const API_BASE = "http://localhost:8000";
+
+const CATEGORY_COLORS = [
+  "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7",
+  "#ec4899", "#f43f5e", "#f59e0b", "#22c55e",
+  "#14b8a6", "#06b6d4", "#64748b", "#94a3b8",
+];
+
+async function loadDashboard() {
+  try {
+    const res = await fetch(`${API_BASE}/dashboard`);
+    const data = await res.json();
+    renderDashboard(data);
+  } catch (e) {
+    document.getElementById("category-tbody").innerHTML =
+      `<tr><td colspan="4" style="color:var(--danger);text-align:center;padding:24px">
+        無法載入資料：後端服務未啟動或向量資料庫尚未建置。<br/>
+        <small>請執行 python scripts/build_vector_db.py 後重試</small>
+      </td></tr>`;
+  }
+}
+
+function renderDashboard(data) {
+  const total = data.total || 0;
+  const cats = data.categories || {};
+  const entries = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+  const catCount = entries.length;
+  const topCat = entries[0]?.[0] || "--";
+
+  document.getElementById("total-count").textContent = total.toLocaleString();
+  document.getElementById("category-count").textContent = catCount;
+  document.getElementById("top-category").textContent = topCat;
+
+  const top10 = entries.slice(0, 10);
+  const labels = top10.map(([k]) => k);
+  const values = top10.map(([, v]) => v);
+
+  // Pie Chart
+  new Chart(document.getElementById("pie-chart"), {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: CATEGORY_COLORS,
+        borderColor: "transparent",
+        hoverOffset: 8,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right",
+          labels: { color: "#94a3b8", font: { size: 11 }, boxWidth: 12, padding: 12 },
+        },
+      },
+    },
+  });
+
+  // Bar Chart
+  new Chart(document.getElementById("bar-chart"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "查核筆數",
+        data: values,
+        backgroundColor: CATEGORY_COLORS,
+        borderRadius: 6,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: "y",
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: "#1e2a42" }, ticks: { color: "#64748b" } },
+        y: { grid: { display: false }, ticks: { color: "#94a3b8", font: { size: 11 } } },
+      },
+    },
+  });
+
+  // Table
+  const tbody = document.getElementById("category-tbody");
+  if (!entries.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:24px">無資料</td></tr>`;
+    return;
+  }
+  const maxVal = entries[0][1];
+  tbody.innerHTML = entries.map(([cat, count], i) => {
+    const pct = total ? ((count / total) * 100).toFixed(1) : "0.0";
+    const barW = Math.round((count / maxVal) * 80);
+    return `
+      <tr>
+        <td class="text-muted">${i + 1}</td>
+        <td>${escHtml(cat)}</td>
+        <td>${count.toLocaleString()}<span class="bar-mini" style="width:${barW}px;background:${CATEGORY_COLORS[i % CATEGORY_COLORS.length]}"></span></td>
+        <td>${pct}%</td>
+      </tr>`;
+  }).join("");
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+loadDashboard();
+</script>
+
+<!-- ── Attribution Footer ───────────────────────────────── -->
+<footer class="attribution-footer">
+  本編輯資料取自「<a href="https://cofacts.tw" target="_blank" rel="noopener">Cofacts 真的假的</a>」訊息回覆機器人與查證協作社群，採用
+  <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> 授權提供。
+  若欲補充資訊請上 <a href="https://line.me/ti/p/@cofacts" target="_blank" rel="noopener">Cofacts LINE bot</a>
+</footer>
+
+</body>
+</html>

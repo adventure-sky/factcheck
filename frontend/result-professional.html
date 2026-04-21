@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>完整分析報告 — 假訊息情報中心</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Fira+Code:wght@300;400;500;600&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ── Page layout ─────────────────────────────────────── */
+    .report-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    /* ── Classification Header ───────────────────────────── */
+    .classif-header {
+      padding: 24px 0 20px;
+      border-bottom: 1px solid rgba(34,211,238,0.08);
+      margin-bottom: 22px;
+      animation: fadeDown 0.5s ease both;
+    }
+    .classif-banner {
+      font-family: var(--display);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--amber);
+      background: var(--amber-dim);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: var(--radius-sm);
+      padding: 4px 16px;
+      display: inline-block;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+    }
+    .classif-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: center;
+    }
+    .classif-meta__item {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      letter-spacing: 0.06em;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .classif-meta__item span { color: var(--text); }
+    .classif-meta__actions { margin-left: auto; display: flex; gap: 10px; }
+
+    /* ── Verdict Overview Row ────────────────────────────── */
+    .verdict-overview {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 0;
+      margin-bottom: 20px;
+      border: 1px solid var(--border-hi);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: fadeUp 0.45s ease 0.1s both;
+      background: var(--surface);
+    }
+    .verdict-overview__score {
+      background: var(--surface-2);
+      border-right: 1px solid var(--border-hi);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: relative;
+    }
+    .verdict-overview__score::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 2px;
+      background: var(--primary);
+      opacity: 0.5;
+    }
+    .score-num-big {
+      font-family: var(--display);
+      font-size: 46px;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .score-num-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .verdict-overview__info {
+      padding: 20px 24px;
+    }
+    .verdict-info__label-big {
+      font-family: var(--display);
+      font-size: 22px;
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+    }
+    .verdict-info__label-big.danger  { color: var(--danger); }
+    .verdict-info__label-big.warning { color: var(--amber); }
+    .verdict-info__label-big.success { color: var(--green); }
+    .verdict-info__summary {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-top: 10px;
+      border-left: 2px solid var(--border-hi);
+      padding-left: 12px;
+    }
+
+    /* ── Dimensions Grid ─────────────────────────────────── */
+    .dimensions-section {
+      margin-bottom: 20px;
+      animation: fadeUp 0.45s ease 0.2s both;
+    }
+    .dimensions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .dim-card {
+      background: var(--surface);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--radius);
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .dim-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 2px;
+    }
+    .dim-card--danger::before  { background: var(--danger); }
+    .dim-card--warning::before { background: var(--amber); }
+    .dim-card--success::before { background: var(--green); }
+
+    .dim-card__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .dim-card__name {
+      font-family: var(--display);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .dim-card__score {
+      font-family: var(--display);
+      font-size: 20px;
+      line-height: 1;
+    }
+    .dim-mini-track {
+      height: 3px;
+      background: var(--surface-3);
+      border-radius: 0;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .dim-mini-fill {
+      height: 100%;
+      transition: width 1s ease;
+    }
+    .dim-card__desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-top: 4px;
+    }
+
+    /* ── Two-column findings layout ──────────────────────── */
+    .findings-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+      animation: fadeUp 0.45s ease 0.3s both;
+    }
+
+    /* ── Findings List ───────────────────────────────────── */
+    .findings-panel {}
+    .intel-log {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .intel-log__item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.65;
+      padding: 8px 12px;
+      background: var(--surface-2);
+      border-radius: var(--radius);
+      border-left: 2px solid var(--primary);
+    }
+    .intel-log__item--warn {
+      border-left-color: var(--amber);
+    }
+    .intel-log__marker {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      padding-top: 2px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Signal Intel (RAG) ──────────────────────────────── */
+    .signal-wrap {
+      margin-bottom: 20px;
+      animation: fadeUp 0.45s ease 0.35s both;
+    }
+    .signal-note {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    .signal-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .signal-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 2px; height: 100%;
+      border-radius: var(--radius) 0 0 var(--radius);
+    }
+    .signal-card.has-reply::before { background: var(--primary); }
+    .signal-card.no-reply::before  { background: var(--text-muted); }
+    .signal-card__meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .signal-sim {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+    .signal-reply {
+      margin-top: 8px;
+      background: var(--primary-dim);
+      border-left: 2px solid var(--primary);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 8px 12px;
+    }
+    .signal-reply__label {
+      font-family: var(--mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .signal-reply__text {
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    /* ── Tip Box override ────────────────────────────────── */
+    .tip-box { margin-bottom: 20px; animation: fadeUp 0.45s ease 0.4s both; }
+
+    /* ── Print / PDF ─────────────────────────────────────── */
+    @media print {
+      /* Hide chrome */
+      .nav, .sys-bar, .btn, .classif-meta__actions { display: none !important; }
+      body::after { display: none; }
+
+      /* Light theme */
+      body {
+        background: #fff !important;
+        color: #111 !important;
+        background-image: none !important;
+        font-size: 12px;
+      }
+      :root {
+        --bg: #fff; --surface: #f8f8f8; --surface-2: #f0f0f0; --surface-3: #e8e8e8;
+        --border: #ddd; --border-hi: #ccc;
+        --primary: #0891b2; --primary-dim: rgba(8,145,178,0.1);
+        --amber: #b45309; --amber-dim: rgba(180,83,9,0.1);
+        --green: #16a34a; --danger: #dc2626; --danger-dim: rgba(220,38,38,0.1);
+        --text: #111; --text-secondary: #444; --text-muted: #666;
+      }
+
+      /* Layout */
+      .report-wrap { padding: 0 !important; }
+      .classif-header { padding: 12px 0 10px !important; }
+
+      /* Cards */
+      .intel-panel, .verdict-overview, .verdict-overview__score,
+      .verdict-overview__info, .dim-card, .signal-card, .intel-log__item {
+        background: #f8f8f8 !important; border-color: #ccc !important;
+      }
+      .verdict-overview__score { background: #f0f0f0 !important; }
+      .signal-reply { background: #e8f4f8 !important; border-left-color: #0891b2 !important; }
+
+      /* Semantic text colours */
+      .classif-banner { color: #b45309 !important; background: #fef3c7 !important; border-color: #d97706 !important; }
+      .classif-meta__item { color: #444 !important; }
+      .verdict-info__label-big.danger  { color: #dc2626 !important; }
+      .verdict-info__label-big.warning { color: #b45309 !important; }
+      .verdict-info__label-big.success { color: #16a34a !important; }
+      .verdict-info__summary { border-left-color: #ccc !important; color: #444 !important; }
+      .score-num-label { color: #666 !important; }
+      .dim-card__name  { color: #111 !important; }
+      .dim-card__desc  { color: #444 !important; }
+      .intel-log__marker { color: #666 !important; }
+      .signal-reply__label { color: #0891b2 !important; }
+      .signal-reply__text  { color: #111 !important; }
+      .signal-note { color: #666 !important; }
+      .section-title { color: #111 !important; border-bottom-color: #ccc !important; }
+
+      /* Tip */
+      .tip-box { background: #fef9e7 !important; border-color: #d97706 !important; }
+      .tip-box__title { color: #b45309 !important; }
+      .tip-box__body  { color: #444 !important; }
+
+      /* Labels */
+      .label--danger  { background: #fee2e2 !important; color: #dc2626 !important; border-color: #fca5a5 !important; }
+      .label--warning { background: #fef3c7 !important; color: #b45309 !important; border-color: #fcd34d !important; }
+      .label--success { background: #dcfce7 !important; color: #16a34a !important; border-color: #86efac !important; }
+      .label--default { background: #f1f5f9 !important; color: #475569 !important; border-color: #cbd5e1 !important; }
+
+      /* Links */
+      a { color: #0891b2 !important; }
+      .attribution-footer { color: #666 !important; border-top-color: #ccc !important; }
+
+      /* Page-break hints */
+      .dimensions-section, .findings-section, .signal-wrap, .tip-box, .signal-card {
+        page-break-inside: avoid;
+      }
+    }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 800px) {
+      .verdict-overview { grid-template-columns: 1fr; }
+      .verdict-overview__score { border-right: none; border-bottom: 1px solid var(--border-hi); }
+      .dimensions-grid { grid-template-columns: 1fr; }
+      .findings-section { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .report-wrap { padding: 0 14px 40px; }
+      .classif-meta { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .classif-meta__actions { margin-left: 0; }
+      .sys-bar__right { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sys Bar ────────────────────────────────────────── -->
+<div class="sys-bar">
+  <div class="sys-bar__inner">
+    <span class="sys-item"><span class="sys-dot"></span>GROQ AI</span>
+    <span class="sys-item"><span class="sys-dot"></span>CHROMADB</span>
+    <span class="sys-item"><span class="sys-dot"></span>GOOGLE FCK</span>
+    <div class="sys-bar__right">
+      <span>MODE: PROFESSIONAL REPORT</span>
+      <span id="sys-time">--:--:--</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Nav ───────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav__inner">
+    <a class="nav__logo" href="index.html">
+      <div class="nav__logo-icon">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 1L2 3.5V8C2 11.5 4.5 14.2 8 15C11.5 14.2 14 11.5 14 8V3.5L8 1Z" stroke="#22d3ee" stroke-width="1.2" stroke-linejoin="round"/>
+          <path d="M5 8L7 10L11 6" stroke="#22d3ee" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      假訊息情報中心
+    </a>
+    <div class="nav__links">
+      <a href="index.html">← 返回首頁</a>
+      <a href="result-citizen.html">逐步查核版</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Report Content ────────────────────────────────── -->
+<div class="report-wrap">
+
+  <!-- Classification Header -->
+  <div class="classif-header">
+    <div class="classif-banner">PROFESSIONAL ANALYSIS // FULL INTELLIGENCE REPORT</div>
+    <div class="classif-meta">
+      <span class="classif-meta__item">TIMESTAMP: <span id="report-time">—</span></span>
+      <span class="classif-meta__item">SUBJECT: <span id="report-input" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom">—</span></span>
+      <div class="classif-meta__actions">
+        <div style="display:inline-flex;border:1px solid var(--border-hi);border-radius:3px;overflow:hidden;font-family:var(--mono);font-size:10px;margin-right:8px">
+          <a href="result-citizen.html" style="padding:5px 14px;color:var(--text-muted);letter-spacing:.08em;text-decoration:none" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-muted)'">CITIZEN</a>
+          <span style="padding:5px 14px;background:var(--amber);color:var(--bg);letter-spacing:.08em">PROFESSIONAL</span>
+        </div>
+        <button class="btn btn--secondary" id="share-btn" onclick="copyShareLink()" style="padding:6px 14px;font-size:10px">複製分享連結</button>
+        <button class="btn btn--secondary" onclick="window.print()" style="padding:6px 14px;font-size:10px">列印 / PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Evidence (僅圖片查核時顯示) -->
+  <div id="image-evidence" class="hidden" style="margin-bottom:16px;border:1px solid var(--border-hi);border-radius:2px;overflow:hidden">
+    <div style="background:var(--surface);padding:6px 14px;font-size:10px;font-family:var(--mono);color:var(--amber);letter-spacing:.08em;border-bottom:1px solid var(--border-hi)">
+      IMAGE EVIDENCE &nbsp;//&nbsp; <span style="color:var(--text-muted)">原始送查圖片</span>
+    </div>
+    <div style="padding:12px;display:flex;justify-content:center;background:var(--bg)">
+      <img id="evidence-img" src="" alt="查核圖片"
+        style="max-width:100%;max-height:300px;object-fit:contain;border:1px solid var(--border-hi);border-radius:2px;display:block" />
+    </div>
+  </div>
+
+  <!-- Verdict Overview -->
+  <div class="verdict-overview">
+    <div class="verdict-overview__score">
+      <div class="score-num-big" id="score-num" style="color:var(--amber)">—</div>
+      <div class="score-num-label">Credibility Score</div>
+    </div>
+    <div class="verdict-overview__info">
+      <div class="verdict-info__label-big" id="verdict-label">載入中...</div>
+      <div id="verdict-badge"></div>
+      <p class="verdict-info__summary" id="analysis-summary"></p>
+    </div>
+  </div>
+
+  <!-- Dimensions -->
+  <div class="dimensions-section">
+    <div class="section-title">MULTI-DIMENSION ASSESSMENT</div>
+    <div class="dimensions-grid" id="dimensions-grid">
+      <div class="dim-card" style="grid-column:1/-1;color:var(--text-muted);font-family:var(--mono);font-size:11px">
+        LOADING DIMENSION DATA...
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Findings + Uncertainties -->
+  <div class="findings-section">
+    <div class="intel-panel findings-panel" id="findings-card" style="display:none">
+      <div class="panel-header">
+        <span class="panel-tag">KEY FINDINGS</span>
+        <span class="panel-title">關鍵發現</span>
+      </div>
+      <div class="panel-body" style="padding:0 16px 16px">
+        <ul class="intel-log" id="findings-list"></ul>
+      </div>
+    </div>
+    <div class="intel-panel findings-panel" id="uncertainties-card" style="display:none">
+      <div class="panel-header">
+        <span class="panel-tag" style="color:var(--amber);background:var(--amber-dim);border-color:rgba(245,158,11,0.2)">UNCERTAINTIES</span>
+        <span class="panel-title">不確定之處</span>
+      </div>
+      <div class="panel-body" style="padding:0 16px 16px">
+        <ul class="intel-log" id="uncertainties-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signal Intel (RAG) -->
+  <div class="signal-wrap" id="rag-section" style="display:none">
+    <div class="section-title">SIGNAL INTEL — 相關討論參考</div>
+    <p class="signal-note">Cofacts 資料庫相似度最高記錄（門檻 ≥ 50%），供延伸參考。</p>
+    <div id="rag-list"></div>
+  </div>
+
+  <!-- Google Fact Check -->
+  <div class="signal-wrap" id="fact-check-section" style="display:none">
+    <div class="section-title">EXTERNAL VERIFICATION — Google Fact Check</div>
+    <div id="fact-check-list"></div>
+  </div>
+
+  <!-- Media Literacy Tip -->
+  <div class="tip-box" id="tip-box" style="display:none">
+    <div class="tip-box__icon">⚡</div>
+    <div>
+      <div class="tip-box__title">識讀警示</div>
+      <div class="tip-box__body" id="tip-text"></div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="flex gap-12" style="animation:fadeUp 0.45s ease 0.5s both">
+    <a href="index.html" class="btn btn--ghost btn--full">← 重新查核</a>
+  </div>
+
+</div>
+
+<script>
+const API_BASE = "http://localhost:8000";
+
+/* ── 分享連結（base64 hash）────────────────────────────── */
+function copyShareLink() {
+  const stored = sessionStorage.getItem("checkResult_professional")
+              || sessionStorage.getItem("checkResult");
+  if (!stored) { alert("尚無查核結果可分享"); return; }
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(stored)));
+    const url = `${location.origin}${location.pathname}#share=${encoded}`;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById("share-btn");
+      const orig = btn.textContent;
+      btn.textContent = "已複製！";
+      setTimeout(() => { btn.textContent = orig; }, 1800);
+    }).catch(() => {
+      prompt("複製以下連結：", url);
+    });
+  } catch(e) {
+    alert("分享連結產生失敗（資料可能過大）");
+  }
+}
+
+/* 頁面載入時：若 hash 含 share= 則優先從 hash 載入結果 */
+(function parseShareHash() {
+  if (!location.hash.startsWith("#share=")) return;
+  try {
+    const encoded = location.hash.slice(7);
+    const json = decodeURIComponent(escape(atob(encoded)));
+    sessionStorage.setItem("checkResult_professional", json);
+    // 清掉 hash 避免 URL 過長影響分享按鈕再次觸發
+    history.replaceState(null, "", location.pathname);
+  } catch(e) {
+    console.warn("Share hash 解析失敗：", e);
+  }
+})();
+
+(function tick() {
+  const el = document.getElementById('sys-time');
+  if (el) el.textContent = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+  setTimeout(tick, 1000);
+})();
+
+/* ── 數字解碼動畫 ─────────────────────────────────────── */
+function decodeNumber(el, target, suffix = "", duration = 1100) {
+  const targetStr = String(target);
+  const len = targetStr.length;
+  let elapsed = 0;
+
+  function tick() {
+    const progress = Math.min(elapsed / duration, 1);
+    if (progress < 1) {
+      let display = "";
+      for (let i = 0; i < len; i++) {
+        const lockAt = ((i + 1) / len) * 0.78;
+        display += progress >= lockAt ? targetStr[i] : Math.floor(Math.random() * 10);
+      }
+      el.textContent = display + suffix;
+      const interval = 40 + progress * 140;
+      elapsed += interval;
+      setTimeout(tick, interval);
+    } else {
+      el.textContent = target + suffix;
+      const orig = el.style.textShadow;
+      el.style.textShadow = "0 0 18px currentColor, 0 0 6px currentColor";
+      setTimeout(() => { el.style.textShadow = orig; }, 450);
+    }
+  }
+  tick();
+}
+
+const LABEL_CONFIG = {
+  "假訊息": { color: "var(--danger)",  cls: "danger",  badge: "danger" },
+  "待查證": { color: "var(--amber)",   cls: "warning", badge: "warning" },
+  "可信":   { color: "var(--green)",   cls: "success", badge: "success" },
+};
+function normalizeLabel(label) {
+  if (LABEL_CONFIG[label]) return label;
+  const l = label.toLowerCase();
+  if (["假","錯","false","fake"].some(k => l.includes(k))) return "假訊息";
+  if (["可信","真實","正確","true","verified"].some(k => l.includes(k))) return "可信";
+  return "待查證";
+}
+
+const IMAGE_LABEL_CONFIG = {
+  "高度疑似 AI 生成": { color: "var(--danger)",  cls: "danger",  badge: "danger" },
+  "可能為 AI 生成":   { color: "var(--amber)",   cls: "warning", badge: "warning" },
+  "疑似真實照片":     { color: "var(--primary)", cls: "info",    badge: "neutral" },
+  "確認為真實照片":   { color: "var(--green)",   cls: "success", badge: "success" },
+};
+
+const DIMENSION_LABELS = {
+  source_credibility: "SOURCE CREDIBILITY",
+  evidence_strength:  "EVIDENCE STRENGTH",
+  language_analysis:  "LANGUAGE ANALYSIS",
+  rag_match:          "RAG SIMILARITY",
+};
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+function scoreClass(s) {
+  if (s >= 0.7) return "dim-card--success";
+  if (s >= 0.4) return "dim-card--warning";
+  return "dim-card--danger";
+}
+function scoreColor(s) {
+  if (s >= 0.7) return "var(--green)";
+  if (s >= 0.4) return "var(--amber)";
+  return "var(--danger)";
+}
+
+function renderReport(data) {
+  if (data.inputType === "image") { renderImageReport(data); return; }
+
+  document.getElementById("report-time").textContent = new Date().toLocaleString("zh-TW");
+  const inp = data.input || "";
+  document.getElementById("report-input").textContent = inp.length > 60 ? inp.slice(0,60)+"…" : inp;
+
+  const label = normalizeLabel(data.credibility_label || "待查證");
+  const score = data.credibility_score ?? 0.5;
+  const cfg = LABEL_CONFIG[label] || LABEL_CONFIG["待查證"];
+  const pct = Math.round(score * 100);
+
+  document.getElementById("score-num").style.color = cfg.color;
+  decodeNumber(document.getElementById("score-num"), pct, "%");
+  document.getElementById("verdict-label").textContent = label;
+  document.getElementById("verdict-label").className = `verdict-info__label-big ${cfg.cls}`;
+  document.getElementById("verdict-badge").innerHTML = `<span class="label label--${cfg.badge}">${label}</span>`;
+  document.getElementById("analysis-summary").textContent = data.analysis || "";
+
+  // Dimensions
+  const dims = data.dimensions;
+  const grid = document.getElementById("dimensions-grid");
+  if (dims && Object.keys(dims).length) {
+    grid.innerHTML = Object.entries(dims).map(([key, val]) => {
+      const s = val.score ?? 0;
+      const p = Math.round(s * 100);
+      const cls = scoreClass(s);
+      const col = scoreColor(s);
+      return `
+        <div class="dim-card ${cls}">
+          <div class="dim-card__header">
+            <span class="dim-card__name">${DIMENSION_LABELS[key] || key}</span>
+            <span class="dim-card__score" style="color:${col}">${p}%</span>
+          </div>
+          <div class="dim-mini-track">
+            <div class="dim-mini-fill" style="width:${p}%;background:${col}"></div>
+          </div>
+          <div class="dim-card__desc">${escHtml(val.explanation || "")}</div>
+        </div>
+      `;
+    }).join("");
+  } else {
+    grid.innerHTML = `<p style="grid-column:1/-1;color:var(--text-muted);font-family:var(--mono);font-size:11px">NO DIMENSION DATA (CITIZEN MODE RESULT — RERUN AS PROFESSIONAL FOR FULL DIMENSIONS)</p>`;
+  }
+
+  // Key Findings
+  const findings = data.key_findings;
+  if (findings?.length) {
+    document.getElementById("findings-list").innerHTML = findings.map((f, i) =>
+      `<li class="intel-log__item">
+        <span class="intel-log__marker">[${String(i+1).padStart(2,'0')}]</span>
+        ${escHtml(f)}
+      </li>`
+    ).join("");
+    document.getElementById("findings-card").style.display = "block";
+  }
+
+  // Uncertainties
+  const uncertainties = data.uncertainties;
+  if (uncertainties?.length) {
+    document.getElementById("uncertainties-list").innerHTML = uncertainties.map((u, i) =>
+      `<li class="intel-log__item intel-log__item--warn">
+        <span class="intel-log__marker" style="color:var(--amber)">[!${String(i+1).padStart(2,'0')}]</span>
+        ${escHtml(u)}
+      </li>`
+    ).join("");
+    document.getElementById("uncertainties-card").style.display = "block";
+  }
+
+  // RAG
+  document.getElementById("rag-section").style.display = "block";
+  if (data.rag_sources?.length) {
+    document.getElementById("rag-list").innerHTML = data.rag_sources.map((src) => {
+      const simColor = src.similarity >= 70 ? "var(--danger)" : src.similarity >= 50 ? "var(--amber)" : "var(--text-muted)";
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const plainText = src.text.replace(urlRegex, "").trim();
+      const urls = [...src.text.matchAll(urlRegex)].map(m => m[1]);
+
+      const titleHtml = src.title
+        ? `<a href="${escHtml(src.url)}" target="_blank" rel="noopener" style="font-size:13px;color:var(--text);font-weight:500;text-decoration:none;display:block;margin-bottom:4px">${escHtml(src.title)}</a>`
+        : `<div>
+            ${plainText ? `<p style="font-size:12px;color:var(--text-secondary);margin:0 0 4px">${escHtml(plainText)}</p>` : ""}
+            ${urls.map(u => `<a href="${escHtml(u)}" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:11px;color:var(--primary);word-break:break-all;display:block">${u.length>70?u.slice(0,67)+"…":u}</a>`).join("")}
+           </div>`;
+
+      return `<div class="signal-card ${src.reply ? 'has-reply' : 'no-reply'}">
+        <div class="signal-card__meta">
+          <span class="signal-sim" style="color:${simColor}">SIM ${src.similarity}%</span>
+          ${src.category ? `<span class="label label--default">${escHtml(src.category)}</span>` : ""}
+        </div>
+        ${titleHtml}
+        ${src.reply
+          ? `<div class="signal-reply">
+               <div class="signal-reply__label">查核回應</div>
+               <div class="signal-reply__text">${escHtml(src.reply)}</div>
+             </div>`
+          : `<div style="margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--text-muted)">NO REPLY ON RECORD</div>`
+        }
+      </div>`;
+    }).join("");
+  } else {
+    document.getElementById("rag-list").innerHTML =
+      `<p class="signal-note">本次查核未在 Cofacts 資料庫找到高相似度記錄（門檻 ≥ 50%）。</p>`;
+  }
+
+  // Fact Check
+  if (data.fact_check_claims?.length) {
+    document.getElementById("fact-check-list").innerHTML = data.fact_check_claims.map(c =>
+      `<div class="signal-card has-reply">
+        <div style="font-size:13px;color:var(--text);margin-bottom:6px;font-weight:500">${escHtml(c.text || "")}</div>
+        <div style="font-size:11px;color:var(--text-secondary);font-family:var(--mono)">
+          VERDICT: <span style="color:var(--amber)">${escHtml(c.rating || "")}</span>
+          &nbsp;|&nbsp; SOURCE: ${escHtml(c.publisher || "")}
+          ${c.url ? `&nbsp;&mdash;&nbsp;<a href="${escHtml(c.url)}" target="_blank" rel="noopener" style="color:var(--primary)">查看來源</a>` : ""}
+        </div>
+      </div>`
+    ).join("");
+    document.getElementById("fact-check-section").style.display = "block";
+  }
+
+  // Tip
+  if (data.media_literacy_tip) {
+    document.getElementById("tip-text").textContent = data.media_literacy_tip;
+    document.getElementById("tip-box").style.display = "flex";
+  }
+}
+
+function renderImageReport(data) {
+  document.getElementById("report-time").textContent = new Date().toLocaleString("zh-TW");
+  document.getElementById("report-input").textContent = data.input || "圖片查核";
+
+  // 顯示原始圖片
+  if (data.imageDataURL) {
+    document.getElementById("evidence-img").src = data.imageDataURL;
+    document.getElementById("image-evidence").classList.remove("hidden");
+  }
+
+  const aiLabel = data.ai_label || "無法判斷";
+  const cfg = IMAGE_LABEL_CONFIG[aiLabel] || IMAGE_LABEL_CONFIG["疑似真實照片"] || { color: "var(--amber)", cls: "warning", badge: "warning" };
+  const aiProb = data.ai_probability ?? 0.5;
+  const pct = Math.round(aiProb * 100);
+
+  document.getElementById("score-num").style.color = cfg.color;
+  document.querySelector(".score-num-label").textContent = "AI PROBABILITY";
+  decodeNumber(document.getElementById("score-num"), pct, "%");
+  document.getElementById("verdict-label").textContent = aiLabel;
+  document.getElementById("verdict-label").className = `verdict-info__label-big ${cfg.cls}`;
+  document.getElementById("verdict-badge").innerHTML =
+    `<span class="label label--${cfg.badge}">${aiLabel}</span>`;
+  document.getElementById("analysis-summary").textContent = data.analysis || "";
+
+  const grid = document.getElementById("dimensions-grid");
+
+  // professional mode 有 technical_dimensions；fallback 用舊的 2 卡版
+  if (data.technical_dimensions?.length) {
+    grid.innerHTML = data.technical_dimensions.map(dim => {
+      const s = typeof dim.score === "number" ? dim.score : 0.5;
+      // AI Generation Probability：高分 = 壞（越像 AI）→ 顏色反向
+      const isAiProb = dim.name.includes("AI GENERATION");
+      const displayScore = isAiProb ? Math.round(s * 100) + "%" : Math.round(s * 100) + "%";
+      const colorScore = isAiProb ? 1 - s : s;
+      return `<div class="dim-card ${scoreClass(colorScore)}">
+        <div class="dim-card__header">
+          <span class="dim-card__name">${escHtml(dim.name)}</span>
+          <span class="dim-card__score" style="color:${scoreColor(colorScore)}">${escHtml(dim.label || displayScore)}</span>
+        </div>
+        <div class="dim-mini-track"><div class="dim-mini-fill" style="width:${Math.round(s*100)}%;background:${scoreColor(colorScore)}"></div></div>
+        <div class="dim-card__desc">${escHtml(dim.desc || "")}</div>
+      </div>`;
+    }).join("");
+  } else {
+    const confScore = data.confidence === "高" ? 0.85 : data.confidence === "中" ? 0.55 : 0.3;
+    grid.innerHTML = `
+      <div class="dim-card ${scoreClass(1 - aiProb)}">
+        <div class="dim-card__header">
+          <span class="dim-card__name">AI GENERATION PROBABILITY</span>
+          <span class="dim-card__score" style="color:${scoreColor(1-aiProb)}">${Math.round(aiProb*100)}%</span>
+        </div>
+        <div class="dim-mini-track"><div class="dim-mini-fill" style="width:${Math.round(aiProb*100)}%;background:${scoreColor(1-aiProb)}"></div></div>
+        <div class="dim-card__desc">${escHtml(data.ai_label || "")}</div>
+      </div>
+      <div class="dim-card ${scoreClass(confScore)}">
+        <div class="dim-card__header">
+          <span class="dim-card__name">ANALYSIS CONFIDENCE</span>
+          <span class="dim-card__score" style="color:${scoreColor(confScore)}">${escHtml(data.confidence || "低")}</span>
+        </div>
+        <div class="dim-mini-track"><div class="dim-mini-fill" style="width:${Math.round(confScore*100)}%;background:${scoreColor(confScore)}"></div></div>
+        <div class="dim-card__desc">模型對本次判斷的把握程度</div>
+      </div>`;
+  }
+
+  // Key Findings（professional 專用）
+  const findingsCard = document.getElementById("findings-card");
+  const findingsList = document.getElementById("findings-list");
+  if (data.key_findings?.length) {
+    findingsList.innerHTML = data.key_findings.map((f, i) =>
+      `<li class="intel-log__item"><span class="intel-log__marker">[F${String(i+1).padStart(2,'0')}]</span>${escHtml(f)}</li>`
+    ).join("");
+    findingsCard.style.display = "block";
+    findingsCard.querySelector(".panel-tag").textContent = "KEY FINDINGS";
+  } else if (data.visual_description) {
+    findingsList.innerHTML =
+      `<li class="intel-log__item"><span class="intel-log__marker">[IMG]</span>${escHtml(data.visual_description)}</li>`;
+    findingsCard.style.display = "block";
+    findingsCard.querySelector(".panel-tag").textContent = "VISUAL DESCRIPTION";
+  }
+
+  // Uncertainties / Anomalies
+  const uncCard = document.getElementById("uncertainties-card");
+  const uncList = document.getElementById("uncertainties-list");
+  const uncItems = data.uncertainties?.length ? data.uncertainties : data.anomalies;
+  if (uncItems?.length) {
+    uncList.innerHTML = uncItems.map((a, i) =>
+      `<li class="intel-log__item intel-log__item--warn"><span class="intel-log__marker" style="color:var(--amber)">[!${String(i+1).padStart(2,'0')}]</span>${escHtml(a)}</li>`
+    ).join("");
+    uncCard.style.display = "block";
+    uncCard.querySelector(".panel-tag").textContent = data.uncertainties?.length ? "UNCERTAINTIES" : "ANOMALY DETECTION";
+  }
+
+  if (data.media_literacy_tip) {
+    document.getElementById("tip-text").textContent = data.media_literacy_tip;
+    document.getElementById("tip-box").style.display = "flex";
+  }
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
+  // 優先讀預查的 professional 結果，fallback 舊 key
+  const stored = sessionStorage.getItem("checkResult_professional")
+              || sessionStorage.getItem("checkResult");
+  if (!stored) {
+    document.getElementById("verdict-label").textContent = "找不到查核結果，請重新查核。";
+    return;
+  }
+  const data = JSON.parse(stored);
+
+  // 若是舊流程帶來的 citizen 結果（非圖片），補查 professional
+  if (data.mode !== "professional" && data.input && data.inputType !== "image") {
+    document.getElementById("verdict-label").textContent = "FETCHING FULL REPORT...";
+    try {
+      const res = await fetch(`${API_BASE}/check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: data.input, mode: "professional" }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const fresh = await res.json();
+      const merged = { ...fresh, input: data.input };
+      sessionStorage.setItem("checkResult_professional", JSON.stringify(merged));
+      renderReport(merged);
+    } catch (e) {
+      document.getElementById("verdict-label").textContent = `LOAD ERROR: ${e.message}`;
+    }
+    return;
+  }
+  renderReport(data);
+});
+</script>
+
+<!-- ── Attribution Footer ───────────────────────────────── -->
+<footer class="attribution-footer">
+  本編輯資料取自「<a href="https://cofacts.tw" target="_blank" rel="noopener">Cofacts 真的假的</a>」訊息回覆機器人與查證協作社群，採用
+  <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> 授權提供。
+  若欲補充資訊請上 <a href="https://line.me/ti/p/@cofacts" target="_blank" rel="noopener">Cofacts LINE bot</a>
+</footer>
+
+</body>
+</html>

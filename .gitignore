@@ -1,0 +1,52 @@
+# 環境變數（絕對不能 commit）
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# ChromaDB 向量資料庫（體積大，本地建置即可）
+chroma_db/
+
+# HuggingFace 資料集 cache
+~/.cache/huggingface/
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 測試與覆蓋率
+.pytest_cache/
+htmlcov/
+.coverage
+
+# 日誌
+*.log
+
+# Cofacts 原始資料（體積大，從官方下載即可）
+backend/data/cofacts/articles.csv
+backend/data/cofacts/replies.csv
+backend/data/cofacts/article_replies.csv
+
+# ChromaDB 備份（體積大）
+backend/backups/
+
+# Claude Code 個人設定（不屬於專案）
+.claude/
