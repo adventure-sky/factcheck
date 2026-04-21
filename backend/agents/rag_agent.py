@@ -10,13 +10,19 @@ class RAGAgent:
     """語義檢索 Agent：從 ChromaDB 找出最相近的 Cofacts 歷史查核記錄。"""
 
     def __init__(self):
-        self.embed_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+        self._embed_model = None  # lazy load，第一次查詢時才載入
         db_path = os.environ.get("CHROMA_DB_PATH", "./chroma_db")
         self.db = chromadb.PersistentClient(path=db_path)
         self.collection = self.db.get_or_create_collection(
             "fact_check_data",
             metadata={"hnsw:space": "cosine"},
         )
+
+    @property
+    def embed_model(self):
+        if self._embed_model is None:
+            self._embed_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+        return self._embed_model
 
     async def _rerank(self, query: str, candidates: list[dict]) -> list[dict]:
         """用 Groq 對候選結果打相關性分數（0-10），過濾低相關結果後回傳。"""
