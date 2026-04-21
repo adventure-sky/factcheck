@@ -1,22 +1,36 @@
 import os
 import json
 import asyncio
-import chromadb
 from groq import AsyncGroq
-from sentence_transformers import SentenceTransformer
+
+# chromadb / sentence-transformers 為選配（部署環境可能未安裝）
+try:
+    import chromadb
+    from sentence_transformers import SentenceTransformer
+    _RAG_AVAILABLE = True
+except ImportError:
+    _RAG_AVAILABLE = False
 
 
 class RAGAgent:
-    """語義檢索 Agent：從 ChromaDB 找出最相近的 Cofacts 歷史查核記錄。"""
+    """語義檢索 Agent：從 ChromaDB 找出最相近的 Cofacts 歷史查核記錄。
+    若 chromadb / sentence-transformers 未安裝，自動降級為空結果。
+    """
 
     def __init__(self):
-        self._embed_model = None  # lazy load，第一次查詢時才載入
-        db_path = os.environ.get("CHROMA_DB_PATH", "./chroma_db")
-        self.db = chromadb.PersistentClient(path=db_path)
-        self.collection = self.db.get_or_create_collection(
-            "fact_check_data",
-            metadata={"hnsw:space": "cosine"},
-        )
+        self._embed_model = None
+        self.collection = None
+        if not _RAG_AVAILABLE:
+            return
+        try:
+            db_path = os.environ.get("CHROMA_DB_PATH", "./chroma_db")
+            self.db = chromadb.PersistentClient(path=db_path)
+            self.collection = self.db.get_or_create_collection(
+                "fact_check_data",
+                metadata={"hnsw:space": "cosine"},
+            )
+        except Exception:
+            self.collection = None
 
     @property
     def embed_model(self):
@@ -69,6 +83,8 @@ class RAGAgent:
             return candidates  # rerank 失敗時靜默降級，回傳原始順序
 
     async def retrieve(self, query: str, n_results: int = 3) -> dict:
+        if not _RAG_AVAILABLE or self.collection is None:
+            return {"documents": [], "metadatas": [], "distances": []}
         count = self.collection.count()
         if count == 0:
             return {
@@ -107,6 +123,8 @@ class RAGAgent:
 
     def get_dashboard_stats(self) -> dict:
         """回傳分類統計，供儀表板使用。優先讀取建置時產生的 stats.json 快取。"""
+        if not _RAG_AVAILABLE or self.collection is None:
+            return {"total": 0, "categories": {}}
         db_path = os.environ.get("CHROMA_DB_PATH", "./chroma_db")
         stats_path = os.path.join(db_path, "stats.json")
 
