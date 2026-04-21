@@ -1,5 +1,5 @@
 /* ── 設定 ────────────────────────────────────────────── */
-const API_BASE = "http://localhost:8000";
+const API_BASE = window.location.hostname === "localhost" ? "http://localhost:8000" : "";
 
 /* ── 狀態 ────────────────────────────────────────────── */
 let currentInputType = "text";
