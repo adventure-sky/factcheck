@@ -173,6 +173,19 @@ async function loadDashboard() {
 function renderDashboard(data) {
   const total = data.total || 0;
   const cats = data.categories || {};
+
+  if (total === 0) {
+    document.getElementById("total-count").textContent = "--";
+    document.getElementById("category-count").textContent = "--";
+    document.getElementById("top-category").textContent = "--";
+    document.getElementById("category-tbody").innerHTML =
+      `<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:32px">
+        <div style="font-size:15px;margin-bottom:8px">資料庫未連線</div>
+        <small>向量資料庫（ChromaDB）尚未掛載，統計功能暫時停用。</small>
+      </td></tr>`;
+    return;
+  }
+
   const entries = Object.entries(cats).sort((a, b) => b[1] - a[1]);
   const catCount = entries.length;
   const topCat = entries[0]?.[0] || "--";
