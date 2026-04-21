@@ -68,7 +68,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
+frontend_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend")
 
 
 # ── Request / Response Models ─────────────────────────────────────────────────
