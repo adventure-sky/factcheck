@@ -801,6 +801,19 @@ function renderDashboard(data) {
     document.getElementById(id)?.classList.add("loaded");
   });
 
+  if (total === 0) {
+    document.getElementById("total-count").textContent = "—";
+    document.getElementById("category-count").textContent = "—";
+    document.getElementById("top-category").textContent = "—";
+    const noDb = `<div style="color:var(--text-muted);font-size:11px;font-family:var(--mono);text-align:center;padding:16px 0">🔌 資料庫未連線</div>`;
+    document.getElementById("db-bars").innerHTML = noDb;
+    document.getElementById("category-tbody").innerHTML =
+      `<tr><td colspan="4" style="text-align:center;padding:24px;font-family:var(--mono);font-size:11px;color:var(--text-muted)">
+        🔌 向量資料庫未連線，統計資料無法顯示
+      </td></tr>`;
+    return;
+  }
+
   // Ticker count-up
   countUp(document.getElementById("total-count"), total, 1400);
   setTimeout(() => {
