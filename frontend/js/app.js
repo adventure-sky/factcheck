@@ -134,12 +134,15 @@ async function submitImageCheck(mode) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    sessionStorage.setItem("checkResult", JSON.stringify({
+    const imageResult = JSON.stringify({
       ...data,
       input: selectedFile.name,
       inputType: "image",
       imageDataURL: selectedFileDataURL,
-    }));
+    });
+    sessionStorage.setItem("checkResult", imageResult);
+    sessionStorage.setItem("checkResult_citizen", imageResult);
+    sessionStorage.setItem("checkResult_professional", imageResult);
 
     if (mode === "citizen") {
       window.location.href = "result-citizen.html";

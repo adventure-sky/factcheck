@@ -176,12 +176,23 @@ function renderDashboard(data) {
 
   if (total === 0) {
     document.getElementById("total-count").textContent = "--";
+    document.getElementById("total-count").insertAdjacentHTML("afterend",
+      `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">資料庫未連線</div>`);
     document.getElementById("category-count").textContent = "--";
     document.getElementById("top-category").textContent = "--";
+
+    const noDbMsg = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px;gap:6px">
+      <span style="font-size:28px">🔌</span>
+      <span>資料庫未連線，無法顯示圖表</span>
+    </div>`;
+    document.getElementById("pie-chart").parentElement.innerHTML = noDbMsg;
+    document.getElementById("bar-chart").parentElement.innerHTML = noDbMsg;
+
     document.getElementById("category-tbody").innerHTML =
-      `<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:32px">
-        <div style="font-size:15px;margin-bottom:8px">資料庫未連線</div>
-        <small>向量資料庫（ChromaDB）尚未掛載，統計功能暫時停用。</small>
+      `<tr><td colspan="4" style="text-align:center;padding:40px 24px">
+        <div style="font-size:22px;margin-bottom:10px">🔌</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">向量資料庫未連線</div>
+        <div style="font-size:13px;color:var(--text-muted)">此部署環境未掛載 ChromaDB，統計資料暫時無法顯示。</div>
       </td></tr>`;
     return;
   }
