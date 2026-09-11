@@ -1,0 +1,30 @@
+# 大型資料：向量資料庫與備份（本地建置即可，生產環境優雅降級）
+backend/chroma_db/
+backend/backups/
+backend/data/
+
+# 虛擬環境與套件
+backend/venv/
+venv/
+.venv/
+node_modules/
+
+# 快取
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.cache/
+
+# 機密
+.env
+*.env
+
+# 不需進 image
+.git/
+.gitignore
+.claude/
+presentation/
+*.md
+package.json
+package-lock.json
+.npmrc
