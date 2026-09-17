@@ -3,7 +3,15 @@ import json
 from groq import Groq
 from typing import Optional
 
-TEXT_MODEL = "qwen/qwen3.8-27b"
+# qwen3.8-27b 的 OTPM（每分鐘輸出 token）硬上限為 1000，citizen 完整 JSON 約需 1114
+# 會被 429 拒絕；gpt-oss-120b 實測無 OTPM 限制，故文字路徑使用它。
+TEXT_MODEL = "openai/gpt-oss-120b"
+
+# gpt-oss-120b 為推理模型，reasoning token 計入 max_tokens 且浮動極大
+# （實測 129-626）。低 effort 可將其壓到穩定的 ~40，判定品質不變，
+# 同時降低 TPM 消耗、縮短回應時間。若不設，max_tokens 較小的呼叫
+# （follow_up 400 / rerank 200）會被推理吃光額度而輸出截斷。
+REASONING_EFFORT = "low"
 
 VALID_LABELS = {"假訊息", "待查證", "可信"}
 
@@ -211,6 +219,7 @@ class SynthesisAgent:
                     model=TEXT_MODEL,
                     messages=messages,
                     temperature=0.3,
+                    reasoning_effort=REASONING_EFFORT,
                     max_tokens=400,
                 )
                 answer = resp.choices[0].message.content.strip()
@@ -228,6 +237,11 @@ class SynthesisAgent:
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.1,
+                reasoning_effort=REASONING_EFFORT,
+                # gpt-oss-120b 為推理模型，reasoning token 也計入 max_tokens 且
+                # 浮動大（實測 258-645）。觀測 completion 峰值 1195，故留三倍餘裕。
+                # 完全不設會被 429（等同要求最大輸出量，吃光 TPM 8000 額度）。
+                max_tokens=4000,
             )
             result = json.loads(response.choices[0].message.content)
             result["credibility_label"] = _normalize_label(result.get("credibility_label", "待查證"))
@@ -258,6 +272,8 @@ class SynthesisAgent:
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.1,
+                reasoning_effort=REASONING_EFFORT,
+                max_tokens=500,
             )
             result = json.loads(response.choices[0].message.content)
             result["credibility_label"] = _normalize_label(result.get("credibility_label", "待查證"))
@@ -317,6 +333,7 @@ technical_dimensions 中後三項的 score 請根據視覺分析結果合理推�
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"},
                 temperature=0.3,
+                reasoning_effort=REASONING_EFFORT,
                 max_tokens=800,
             )
             pro_data = json.loads(resp.choices[0].message.content)

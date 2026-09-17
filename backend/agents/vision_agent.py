@@ -4,6 +4,8 @@ import base64
 import httpx
 from groq import Groq
 
+# 清單中唯一支援圖片輸入的模型。其 OTPM 硬上限為 1000，
+# 故呼叫處必須指定 max_tokens（見 analyze()），否則預估值會超標被 429 拒絕。
 VISION_MODEL = "qwen/qwen3.8-27b"
 
 AIORNOT_ENDPOINT = "https://api.aiornot.com/v2/image/sync"
@@ -170,6 +172,7 @@ class VisionAgent:
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.2,
+                max_tokens=900,
             )
             groq_data = json.loads(groq_response.choices[0].message.content)
         except Exception as e:

@@ -4,7 +4,7 @@ import asyncio
 from groq import AsyncGroq
 
 # Groq 已下架 llama 系列，改用 qwen3.8-27b（見 synthesis_agent.TEXT_MODEL）
-RERANK_MODEL = "qwen/qwen3.8-27b"
+RERANK_MODEL = "openai/gpt-oss-120b"
 
 # chromadb / sentence-transformers 為選配（部署環境可能未安裝）
 try:
@@ -64,6 +64,7 @@ class RAGAgent:
                     model=RERANK_MODEL,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0,
+                    reasoning_effort="low",   # 見 synthesis_agent.REASONING_EFFORT
                     max_tokens=200,
                 ),
                 timeout=10,
