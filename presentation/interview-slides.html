@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>假訊息情報中心 — 面試簡報</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Fira+Code:wght@300;400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #040a14;
+      --surface: #0a1628;
+      --border: #1e3a5f;
+      --primary: #22d3ee;
+      --amber: #f59e0b;
+      --green: #4ade80;
+      --red: #f87171;
+      --text: #e2e8f0;
+      --text-muted: #64748b;
+      --mono: 'Fira Code', monospace;
+      --sans: 'Noto Sans TC', sans-serif;
+      --title-font: 'Share Tech Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* ── Background grid ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+
+    /* ── Slide container ── */
+    .slides { width: 100vw; height: 100vh; position: relative; }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 80px;
+      opacity: 0;
+      transform: translateX(40px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      pointer-events: none;
+    }
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: all;
+    }
+    .slide.exit {
+      opacity: 0;
+      transform: translateX(-40px);
+    }
+
+    /* ── Nav ── */
+    .nav-bar {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 100;
+    }
+    .nav-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--primary);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 8px 20px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .nav-btn:hover { background: #0f2035; border-color: var(--primary); }
+    .nav-btn:disabled { opacity: 0.3; cursor: default; }
+    .slide-counter {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      min-width: 60px;
+      text-align: center;
+    }
+
+    /* ── Progress bar ── */
+    .progress {
+      position: fixed;
+      top: 0; left: 0;
+      height: 2px;
+      background: var(--primary);
+      box-shadow: 0 0 8px var(--primary);
+      transition: width 0.4s ease;
+    }
+
+    /* ── Corner bracket decoration ── */
+    .corner {
+      position: fixed;
+      width: 20px; height: 20px;
+      border-color: var(--primary);
+      border-style: solid;
+      opacity: 0.4;
+    }
+    .corner--tl { top: 16px; left: 16px; border-width: 2px 0 0 2px; }
+    .corner--tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; }
+    .corner--bl { bottom: 16px; left: 16px; border-width: 0 0 2px 2px; }
+    .corner--br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
+
+    /* ── Slide-specific styles ── */
+    .slide-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--primary);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      opacity: 0.7;
+    }
+
+    h1.main-title {
+      font-family: var(--title-font);
+      font-size: 52px;
+      color: var(--primary);
+      text-shadow: 0 0 24px #22d3ee60;
+      text-align: center;
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+    h2.sub-title {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .name-badge {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 24px;
+      background: var(--surface);
+    }
+
+    /* Section title */
+    h2.section-title {
+      font-family: var(--title-font);
+      font-size: 28px;
+      color: var(--text);
+      margin-bottom: 32px;
+      text-align: center;
+    }
+    h2.section-title span { color: var(--primary); }
+
+    /* Panel */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 28px 36px;
+      width: 100%;
+      max-width: 900px;
+      position: relative;
+    }
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: var(--primary);
+    }
+
+    /* Problem bullets */
+    .prob-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      width: 100%;
+      max-width: 900px;
+    }
+    .prob-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+    }
+    .prob-card__label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--amber);
+      letter-spacing: 0.15em;
+      margin-bottom: 12px;
+    }
+    .prob-card ul { list-style: none; }
+    .prob-card ul li {
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text);
+      padding-left: 16px;
+      position: relative;
+    }
+    .prob-card ul li::before {
+      content: '▸';
+      position: absolute; left: 0;
+      color: var(--red);
+    }
+    .prob-quote {
+      background: rgba(34,211,238,0.06);
+      border: 1px solid var(--primary);
+      padding: 20px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--primary);
+      text-align: center;
+    }
+
+    /* Feature cards */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      width: 100%;
+      max-width: 900px;
+    }
+    .feat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .feat-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--primary);
+    }
+    .feat-icon { font-size: 32px; margin-bottom: 12px; display: block; }
+    .feat-title {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--primary);
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+    .feat-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+    .input-types {
+      margin-top: 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .input-types span {
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      margin: 0 4px;
+      color: var(--text);
+    }
+
+    /* Tech stack */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      width: 100%;
+      max-width: 900px;
+    }
+    .tech-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .tech-layer {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--primary);
+      letter-spacing: 0.1em;
+      min-width: 72px;
+    }
+    .tech-val { font-size: 13px; color: var(--text); }
+    .highlight-box {
+      background: rgba(74,222,128,0.06);
+      border: 1px solid var(--green);
+      padding: 14px 24px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--green);
+      text-align: center;
+      margin-top: 16px;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    /* Trade-off table */
+    .tradeoff-table {
+      width: 100%;
+      max-width: 920px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .tradeoff-table th {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--primary);
+      letter-spacing: 0.12em;
+      text-align: left;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .tradeoff-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #0f1e30;
+      vertical-align: middle;
+    }
+    .tradeoff-table tr:hover td { background: rgba(34,211,238,0.03); }
+    .status-ok { color: var(--green); font-family: var(--mono); }
+    .status-warn { color: var(--amber); font-family: var(--mono); }
+    .reason-text { color: var(--text-muted); font-size: 12px; }
+    .tradeoff-footer {
+      margin-top: 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--primary);
+      text-align: center;
+      width: 100%;
+      max-width: 920px;
+      border: 1px solid rgba(34,211,238,0.3);
+      padding: 10px;
+      background: rgba(34,211,238,0.04);
+    }
+
+    /* Result slide */
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      width: 100%;
+      max-width: 900px;
+    }
+    .qr-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .qr-placeholder {
+      width: 140px; height: 140px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #333;
+      text-align: center;
+      font-family: var(--mono);
+    }
+    .qr-url {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      word-break: break-all;
+    }
+    .stats-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .stat-item { display: flex; flex-direction: column; gap: 4px; }
+    .stat-num {
+      font-family: var(--title-font);
+      font-size: 28px;
+      color: var(--primary);
+    }
+    .stat-label { font-size: 12px; color: var(--text-muted); }
+
+    /* Closing slide */
+    .kw-row {
+      display: flex;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .kw-card {
+      background: var(--surface);
+      border: 1px solid var(--primary);
+      padding: 16px 32px;
+      font-family: var(--title-font);
+      font-size: 20px;
+      color: var(--primary);
+      text-shadow: 0 0 12px #22d3ee40;
+    }
+    .kw-sep {
+      font-family: var(--mono);
+      font-size: 20px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+    }
+    .closing-quote {
+      font-size: 15px;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 600px;
+      line-height: 1.8;
+      font-style: italic;
+    }
+
+    /* Scan line effect */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.03) 2px,
+        rgba(0,0,0,0.03) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="corner corner--tl"></div>
+<div class="corner corner--tr"></div>
+<div class="corner corner--bl"></div>
+<div class="corner corner--br"></div>
+
+<div class="slides" id="slides">
+
+  <!-- ── Slide 1：標題 ── -->
+  <div class="slide active" id="slide-0">
+    <div class="slide-tag">// AI 新秀培訓計畫 — 個人專案發表</div>
+    <h1 class="main-title">假訊息情報中心</h1>
+    <h2 class="sub-title">DISINFORMATION INTELLIGENCE CENTER</h2>
+    <p style="font-size:14px;color:var(--text-muted);margin-bottom:32px;font-family:var(--mono)">
+      AI 驅動的假訊息查核與媒體識讀工具
+    </p>
+    <div class="name-badge">[ 請填入你的名字 ] ｜ AI 新秀培訓計畫</div>
+  </div>
+
+  <!-- ── Slide 2：問題 ── -->
+  <div class="slide" id="slide-1">
+    <div class="slide-tag">// 01 — PROBLEM STATEMENT</div>
+    <h2 class="section-title">現有工具只告訴你答案，<span>不教你思考</span></h2>
+    <div class="prob-grid">
+      <div class="prob-card">
+        <div class="prob-card__label">// CURRENT PAIN POINTS</div>
+        <ul>
+          <li>台灣每天有大量假訊息透過 LINE 群組傳播</li>
+          <li>現有平台（Cofacts、MyGoPen）只給「真／假」結論</li>
+          <li>使用者不知道「為什麼是假的」，下次還是會被騙</li>
+        </ul>
+      </div>
+      <div class="prob-card" style="display:flex;flex-direction:column;justify-content:center;gap:16px">
+        <div class="prob-card__label">// MARKET GAP</div>
+        <div class="prob-quote">
+          缺少一個「教你怎麼判斷」<br/>而不只是給答案的工具
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Slide 3：解決方案 ── -->
+  <div class="slide" id="slide-2">
+    <div class="slide-tag">// 02 — SOLUTION</div>
+    <h2 class="section-title">三大<span>核心功能</span></h2>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <span class="feat-icon">🔍</span>
+        <div class="feat-title">STEP-BY-STEP ANALYSIS</div>
+        <div class="feat-desc">AI 拆解每個判斷步驟，引導使用者學會識讀邏輯，而非只給結論</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">🌐</span>
+        <div class="feat-title">MULTI-SOURCE VERIFY</div>
+        <div class="feat-desc">Cofacts 資料庫 × Google Fact Check × 網路搜尋，三路同時比對</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">🖼️</span>
+        <div class="feat-title">AI IMAGE DETECTION</div>
+        <div class="feat-desc">上傳圖片，AI 判斷是否為 AI 生成，並輸出可信度報告</div>
+      </div>
+    </div>
+    <div class="input-types" style="margin-top:20px">
+      支援輸入類型：<span>文字</span><span>網址</span><span>圖片</span>
+    </div>
+  </div>
+
+  <!-- ── Slide 4：技術架構 ── -->
+  <div class="slide" id="slide-3">
+    <div class="slide-tag">// 03 — TECH STACK</div>
+    <h2 class="section-title">全端<span>獨立開發</span></h2>
+    <div class="tech-grid">
+      <div class="tech-row">
+        <span class="tech-layer">FRONTEND</span>
+        <span class="tech-val">HTML / CSS / JS — Intelligence HUD 設計</span>
+      </div>
+      <div class="tech-row">
+        <span class="tech-layer">BACKEND</span>
+        <span class="tech-val">Python FastAPI — 5 Agent 類別，asyncio.gather 並行</span>
+      </div>
+      <div class="tech-row">
+        <span class="tech-layer">AI MODEL</span>
+        <span class="tech-val">Groq — gpt-oss-120b / qwen3.8-27b</span>
+      </div>
+      <div class="tech-row">
+        <span class="tech-layer">RAG</span>
+        <span class="tech-val">ChromaDB × 265,952 筆 Cofacts 查核資料</span>
+      </div>
+      <div class="tech-row">
+        <span class="tech-layer">IMAGE AI</span>
+        <span class="tech-val">AI or Not API（98.9% 準確率）</span>
+      </div>
+      <div class="tech-row">
+        <span class="tech-layer">DEPLOY</span>
+        <span class="tech-val">Railway — Docker 容器化部署</span>
+      </div>
+    </div>
+    <div class="highlight-box">✓ 從 0 到 1 獨立完成前後端開發、AI 整合與雲端部署</div>
+  </div>
+
+  <!-- ── Slide 5：上線取捨 ── -->
+  <div class="slide" id="slide-4">
+    <div class="slide-tag">// 04 — PRODUCTION TRADE-OFFS</div>
+    <h2 class="section-title">從本地到上線：<span>我做了哪些取捨</span></h2>
+    <table class="tradeoff-table">
+      <thead>
+        <tr>
+          <th>功能</th>
+          <th>本地端</th>
+          <th>生產環境</th>
+          <th>取捨原因</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>RAG 語義檢索</td>
+          <td class="status-ok">✓ 265,952 筆</td>
+          <td class="status-warn">⚠ 停用</td>
+          <td class="reason-text">sentence-transformers 使 Docker image 從 300MB 暴增至 6GB，超出免費方案</td>
+        </tr>
+        <tr>
+          <td>Web 搜尋佐證</td>
+          <td class="status-ok">✓ 即時搜尋</td>
+          <td class="status-warn">⚠ 停用</td>
+          <td class="reason-text">Google Cloud 即使免費額度也需綁定付款方式</td>
+        </tr>
+        <tr>
+          <td>儀表板統計</td>
+          <td class="status-ok">✓ 即時圖表</td>
+          <td class="status-warn">⚠ 顯示提示</td>
+          <td class="reason-text">依賴 ChromaDB，同上</td>
+        </tr>
+        <tr>
+          <td>AI 查核分析</td>
+          <td class="status-ok">✓ 正常</td>
+          <td class="status-ok">✓ 正常</td>
+          <td class="reason-text">Groq 雲端 API，無本地資源問題</td>
+        </tr>
+        <tr>
+          <td>AI 圖片辨識</td>
+          <td class="status-ok">✓ 正常</td>
+          <td class="status-ok">✓ 正常</td>
+          <td class="reason-text">AI or Not 雲端 API，同上</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="tradeoff-footer">
+      設計原則：核心功能完整保留 — 資料密集型功能「優雅降級」而非系統崩潰
+    </div>
+  </div>
+
+  <!-- ── Slide 6：成果 ── -->
+  <div class="slide" id="slide-5">
+    <div class="slide-tag">// 05 — LIVE DEMO</div>
+    <h2 class="section-title">現已上線，<span>歡迎實際體驗</span></h2>
+    <div class="result-grid">
+      <div class="qr-box">
+        <div class="qr-placeholder">
+          請替換為<br/>QR Code 圖片<br/><br/>
+          （可用 qr.io 或<br/>qrcode-monkey.com 產生）
+        </div>
+        <div class="qr-url">https://factcheck-production-6647.up.railway.app</div>
+      </div>
+      <div class="stats-box">
+        <div class="stat-item">
+          <div class="stat-num">265,952</div>
+          <div class="stat-label">Cofacts 查核資料筆數（本地端）</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">5–8 秒</div>
+          <div class="stat-label">平均查核回應時間</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">3 路並行</div>
+          <div class="stat-label">RAG × Fact Check × Web Search asyncio.gather</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">2 模式</div>
+          <div class="stat-label">公民識讀版 × 專業分析版</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Slide 7：結語 ── -->
+  <div class="slide" id="slide-6">
+    <div class="slide-tag">// 06 — CLOSING</div>
+    <h2 class="section-title" style="margin-bottom:16px">期待帶著這份實作力<span>加入貴團隊</span></h2>
+    <div class="kw-row">
+      <div class="kw-card">全端開發</div>
+      <div class="kw-sep">×</div>
+      <div class="kw-card">AI 整合</div>
+      <div class="kw-sep">×</div>
+      <div class="kw-card">解決真實問題</div>
+    </div>
+    <p class="closing-quote">
+      這個專案讓我從零學會如何把 AI 技術落地成產品——<br/>
+      包含架構設計、部署挑戰與資源限制下的取捨判斷。<br/>
+      期待在實習中繼續成長，為貴團隊帶來貢獻。
+    </p>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav-bar">
+  <button class="nav-btn" id="btn-prev" onclick="changeSlide(-1)" disabled>◀ PREV</button>
+  <span class="slide-counter" id="counter">01 / 07</span>
+  <button class="nav-btn" id="btn-next" onclick="changeSlide(1)">NEXT ▶</button>
+</div>
+
+<script>
+  let current = 0;
+  const total = 7;
+  const slides = document.querySelectorAll('.slide');
+
+  function changeSlide(dir) {
+    const next = current + dir;
+    if (next < 0 || next >= total) return;
+
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 400);
+
+    current = next;
+    slides[current].classList.add('active');
+
+    document.getElementById('counter').textContent =
+      String(current + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+    document.getElementById('progress').style.width =
+      ((current + 1) / total * 100) + '%';
+    document.getElementById('btn-prev').disabled = current === 0;
+    document.getElementById('btn-next').disabled = current === total - 1;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changeSlide(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   changeSlide(-1);
+  });
+
+  // Init progress
+  document.getElementById('progress').style.width = (1 / total * 100) + '%';
+</script>
+
+</body>
+</html>
