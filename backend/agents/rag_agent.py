@@ -3,6 +3,9 @@ import json
 import asyncio
 from groq import AsyncGroq
 
+# Groq 已下架 llama 系列，改用 qwen3.8-27b（見 synthesis_agent.TEXT_MODEL）
+RERANK_MODEL = "qwen/qwen3.8-27b"
+
 # chromadb / sentence-transformers 為選配（部署環境可能未安裝）
 try:
     import chromadb
@@ -58,7 +61,7 @@ class RAGAgent:
             client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
             resp = await asyncio.wait_for(
                 client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
+                    model=RERANK_MODEL,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0,
                     max_tokens=200,

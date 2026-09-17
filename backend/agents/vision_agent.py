@@ -4,7 +4,7 @@ import base64
 import httpx
 from groq import Groq
 
-VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+VISION_MODEL = "qwen/qwen3.8-27b"
 
 AIORNOT_ENDPOINT = "https://api.aiornot.com/v2/image/sync"
 HIVE_ENDPOINT = "https://api.thehive.ai/api/v2/task/sync"

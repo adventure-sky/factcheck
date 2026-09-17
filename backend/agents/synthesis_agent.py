@@ -3,7 +3,7 @@ import json
 from groq import Groq
 from typing import Optional
 
-TEXT_MODEL = "llama-3.3-70b-versatile"
+TEXT_MODEL = "qwen/qwen3.8-27b"
 
 VALID_LABELS = {"假訊息", "待查證", "可信"}
 
