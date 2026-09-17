@@ -560,7 +560,7 @@
   <!-- ── Slide 5：上線取捨 ── -->
   <div class="slide" id="slide-4">
     <div class="slide-tag">// 04 — PRODUCTION TRADE-OFFS</div>
-    <h2 class="section-title">從本地到上線：<span>我做了哪些取捨</span></h2>
+    <h2 class="section-title">從本地到上線：<span>取捨與故障處理</span></h2>
     <table class="tradeoff-table">
       <thead>
         <tr>
@@ -572,22 +572,16 @@
       </thead>
       <tbody>
         <tr>
-          <td>RAG 語義檢索</td>
+          <td>RAG 語義檢索 ＋ 儀表板</td>
           <td class="status-ok">✓ 265,952 筆</td>
-          <td class="status-warn">⚠ 停用</td>
-          <td class="reason-text">sentence-transformers 使 Docker image 從 300MB 暴增至 6GB，超出免費方案</td>
+          <td class="status-warn">⚠ 優雅降級</td>
+          <td class="reason-text">向量庫 2.1GB 加上模型依賴，超出免費方案 0.5GB RAM 上限</td>
         </tr>
         <tr>
           <td>Web 搜尋佐證</td>
           <td class="status-ok">✓ 即時搜尋</td>
-          <td class="status-warn">⚠ 停用</td>
-          <td class="reason-text">Google Cloud 即使免費額度也需綁定付款方式</td>
-        </tr>
-        <tr>
-          <td>儀表板統計</td>
-          <td class="status-ok">✓ 即時圖表</td>
-          <td class="status-warn">⚠ 顯示提示</td>
-          <td class="reason-text">依賴 ChromaDB，同上</td>
+          <td class="status-warn">⚠ 優雅降級</td>
+          <td class="reason-text">Google Cloud 即使用免費額度也須綁定付款方式</td>
         </tr>
         <tr>
           <td>AI 查核分析</td>
@@ -604,7 +598,12 @@
       </tbody>
     </table>
     <div class="tradeoff-footer">
-      設計原則：核心功能完整保留 — 資料密集型功能「優雅降級」而非系統崩潰
+      上線後的真實故障：上游 AI 供應商停止提供原本使用的模型，查核功能全數失效，
+      但健康檢查與首頁一切正常 — 錯誤被包在 HTTP 200 的回應內
+    </div>
+    <div class="tradeoff-footer">
+      原則一：資料密集型功能「優雅降級」而非讓系統崩潰　·　
+      原則二：部署驗證要跑核心業務流程，健康檢查通過不等於功能正常
     </div>
   </div>
 
